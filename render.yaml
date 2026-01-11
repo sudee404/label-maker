@@ -24,9 +24,9 @@ services:
     #     value: "10000"
       # Add your secrets via dashboard or env group
       # - fromGroup: django-secrets
-    disk:
-      name: media
-      mountPath: /opt/render/project/src/media
+    # disk:
+    #   name: media
+    #   mountPath: /opt/render/project/src/media
       # sizeGB: 10
 
   # ────────────────────────────────────────────────
