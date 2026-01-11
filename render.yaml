@@ -8,21 +8,22 @@ services:
     plan: free
     region: oregon
     buildCommand: |
+      cd backend &&
       pip install --upgrade pip &&
       pip install -r requirements.txt &&
       python manage.py collectstatic --noinput
-    startCommand: gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
+    startCommand: |
+      cd backend &&
+      gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
     healthCheckPath: /health/
     autoDeploy: true
-    # envVars:
-    #   - key: PYTHON_VERSION
-    #     value: 3.11              # or 3.12 / match your local
-    #   - key: DJANGO_SETTINGS_MODULE
-    #     value: core.settings.production  # use production settings!
-    #   - key: PORT
-    #     value: "10000"
-      # Add your secrets via dashboard or env group
-      # - fromGroup: django-secrets
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.4
+      - key: DJANGO_SETTINGS_MODULE
+        value: core.settings
+      - key: PORT
+        value: "10000"
     # disk:
     #   name: media
     #   mountPath: /opt/render/project/src/media
@@ -51,9 +52,3 @@ services:
       - key: PORT
         value: "10000"
     autoDeploy: true
-
-
-# databases:
-#   - name: django-db
-#     plan: free
-#     region: oregon
