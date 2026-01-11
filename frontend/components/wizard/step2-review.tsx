@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Edit, Trash2, CheckCircle, AlertTriangle } from "lucide-react"
-import type { ShipmentRecord } from "@/app/(protected)/shipments/add/page"
+import type { ShipmentRecord } from "@/app/(protected)/shipments/add"
 
 interface Step2ReviewProps {
   records: ShipmentRecord[]

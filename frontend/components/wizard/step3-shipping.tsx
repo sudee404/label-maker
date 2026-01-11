@@ -3,7 +3,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
-import type { ShipmentRecord } from "@/app/(protected)/shipments/add/page"
+import type { ShipmentRecord } from "@/app/(protected)/shipments/add"
 
 interface Step3ShippingProps {
   records: ShipmentRecord[]

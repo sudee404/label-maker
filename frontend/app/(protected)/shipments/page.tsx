@@ -73,7 +73,7 @@ export default function ShipmentsPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/auth/signin")
+      router.push("/login")
     }
   }, [status, router])
 

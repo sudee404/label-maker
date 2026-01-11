@@ -25,9 +25,6 @@ export async function POST(request: Request) {
 
     const response = await fetch(`${DJANGO_API_URL}/bulk-upload/`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${session.user.accessToken}`,
-      },
       body: djangoFormData,
     })
 

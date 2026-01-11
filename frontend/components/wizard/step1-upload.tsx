@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Upload, AlertCircle, CheckCircle } from "lucide-react"
-import type { ShipmentRecord } from "@/app/(protected)/shipments/add/page"
+import type { ShipmentRecord } from "@/app/(protected)/shipments/add"
 
 const states = [
   "AL",

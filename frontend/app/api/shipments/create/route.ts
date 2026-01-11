@@ -18,7 +18,6 @@ export async function POST(request: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.user.accessToken}`,
       },
       body: JSON.stringify(body),
     })
