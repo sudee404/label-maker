@@ -16,7 +16,7 @@ export default function CTA() {
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Button size="lg" asChild>
-            <Link href="/signup">
+            <Link href="/register">
               Get Started Free
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>

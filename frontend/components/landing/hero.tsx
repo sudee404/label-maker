@@ -21,7 +21,7 @@ export default function Hero() {
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button size="lg" asChild className="w-full sm:w-auto">
-                  <Link href="/signup">
+                  <Link href="/register">
                     Start Free Trial
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
