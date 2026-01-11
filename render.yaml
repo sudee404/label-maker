@@ -11,7 +11,8 @@ services:
       cd backend &&
       pip install --upgrade pip &&
       pip install -r requirements.txt &&
-      python manage.py collectstatic --noinput
+      python manage.py collectstatic --noinput &&
+      python manage.py migrate
     startCommand: |
       cd backend &&
       gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
@@ -22,8 +23,16 @@ services:
         value: 3.13.4
       - key: DJANGO_SETTINGS_MODULE
         value: core.settings
+      - key: DJANGO_ALLOWED_HOSTS
+        value: https://frontend-8c1r.onrender.com,https://backend-pvym.onrender.com
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        value: https://frontend-8c1r.onrender.com,https://backend-pvym.onrender.com
+      - key: DJANGO_SECRET_KEY
+        value: "9c2!m@x9qv8$pz*k7w^e5r&y4t2v1n0b3j6h5g4f3d2s1a"
+      - key: DJANGO_DEBUG
+        value: "False"
       - key: PORT
-        value: "10000"
+        value: "8000"
     # disk:
     #   name: media
     #   mountPath: /opt/render/project/src/media
@@ -48,7 +57,11 @@ services:
       pnpm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        value: https://backend.onrender.com
+        value: https://backend-pvym.onrender.com/api
+      - key: NEXTAUTH_SECRET
+        value: PFvUMgHGIduyQEYrOH+FE9Xf1zPjdlJhlnHqveQ7Kqo=
+      - key: NEXT_PUBLIC_API_URL
+        value: https://frontend-8c1r.onrender.com/api/auth
       - key: PORT
-        value: "10000"
+        value: "3000"
     autoDeploy: true
