@@ -92,7 +92,7 @@ export function SignInForm() {
         <div className="mt-6 space-y-3 text-sm">
           <div className="text-center text-muted-foreground">
             Don't have an account?{" "}
-            <Link href="/signup" className="font-semibold text-orange-600 hover:text-orange-700">
+            <Link href="/register" className="font-semibold text-orange-600 hover:text-orange-700">
               Sign up
             </Link>
           </div>

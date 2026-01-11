@@ -1,28 +1,37 @@
+import api from '@/lib/axios';
+import { NextResponse } from 'next/server';
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
-    const { email, password, name } = body
+    const body = await req.json();
+    const { email, password, name } = body;
 
     if (!email || !password || !name) {
-      return Response.json({ message: "Missing required fields" }, { status: 400 })
+      return NextResponse.json(
+        { message: 'Missing required fields' },
+        { status: 400 }
+      );
     }
 
-    // Call Django backend to register user
-    const djangoResponse = await fetch("http://localhost:8000/api/register/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name }),
-    })
+    await api.post('/accounts/register/', {
+      email,
+      password,
+      name,
+    });
 
-    const djangoData = await djangoResponse.json()
+    return NextResponse.json(
+      { message: 'User registered successfully' },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error('Registration error:', error);
 
-    if (!djangoResponse.ok) {
-      return Response.json({ message: djangoData.message || "Registration failed" }, { status: djangoResponse.status })
-    }
+    const status = error.response?.status || error.status || 500;
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      'Internal server error';
 
-    return Response.json({ message: "User registered successfully" }, { status: 201 })
-  } catch (error) {
-    console.error("Registration error:", error)
-    return Response.json({ message: "Internal server error" }, { status: 500 })
+    return NextResponse.json({ message }, { status });
   }
 }

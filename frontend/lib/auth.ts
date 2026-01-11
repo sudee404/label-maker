@@ -1,15 +1,12 @@
-import type { NextAuthOptions } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
+import type { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import api from "@/lib/axios";
 
 export const authOptions: NextAuthOptions = {
-  secret: process.env.NEXTAUTH_SECRET || "development-secret-key",
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-    maxAge: 24 * 60 * 60,
-  },
+  secret: process.env.NEXTAUTH_SECRET!,
+  pages: { signIn: "/login" },
+  session: { strategy: "jwt", maxAge: 24 * 60 * 60 },
+
   providers: [
     CredentialsProvider({
       name: "Django",
@@ -19,64 +16,96 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          return null;
         }
 
         try {
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), 5000)
+          const response = await api.post("/accounts/login/", {
+            email: credentials.email,
+            password: credentials.password,
+          });
 
-          const response = await fetch("http://localhost:8000/api/login/", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password,
-            }),
-            signal: controller.signal,
-          })
+          const data = response.data;
 
-          clearTimeout(timeoutId)
-
-          if (!response.ok) {
-            console.error("[v0] Django auth failed:", response.status)
-            return null
+          // Validate the shape
+          if (!data?.access || !data?.refresh || !data?.user?.email) {
+            console.error("[AUTH] Invalid login response from Django");
+            return null;
           }
-
-          const data = await response.json()
 
           return {
-            id: data.user.id,
+            id: data.user.email,
             email: data.user.email,
-            name: data.user.name || data.user.email,
-            accessToken: data.access_token,
-            refreshToken: data.refresh_token,
-          }
-        } catch (error) {
-          console.error("[v0] Auth error:", error)
-          return null
+            name: data.user.full_name || data.user.email.split("@")[0],
+            accessToken: data.access,
+            refreshToken: data.refresh,
+          };
+        } catch (error: any) {
+          console.error(
+            "[AUTH] Django login failed:",
+            error?.response?.data || error.message
+          );
+          return null;
         }
       },
     }),
   ],
+
   callbacks: {
     async jwt({ token, user }) {
+
       if (user) {
-        token.id = user.id
-        token.accessToken = user.accessToken
-        token.refreshToken = user.refreshToken
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.accessToken = user.accessToken;
+        token.refreshToken = user.refreshToken;
+
+        token.accessTokenExpires = Date.now() + 5 * 60 * 1000;
+        return token;
       }
-      return token
+
+      // Subsequent calls: check if access token expired
+      if (Date.now() < (token.accessTokenExpires as number)) {
+        return token;
+      }
+
+      console.log("[JWT] Access token expired, attempting refresh...");
+
+      try {
+        const refreshResponse = await api.post("/accounts/token/refresh/", {
+          refresh: token.refreshToken,
+        });
+
+        const refreshed = refreshResponse.data;
+
+        if (!refreshed?.access) {
+          throw new Error("No new access token received");
+        }
+
+        return {
+          ...token,
+          accessToken: refreshed.access,
+          refreshToken: refreshed.refresh || token.refreshToken,
+          accessTokenExpires: Date.now() + 5 * 60 * 1000,
+        };
+      } catch (error: any) {
+        console.error(
+          "[JWT] Refresh token failed:",
+          error?.response?.data || error
+        );
+        return { ...token, error: "RefreshTokenError" };
+      }
     },
+
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string
-        session.accessToken = token.accessToken as string
-        session.refreshToken = token.refreshToken as string
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        session.accessToken = token.accessToken as string;
       }
-      return session
+      return session;
     },
   },
-}
+};
