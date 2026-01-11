@@ -23,13 +23,13 @@ services:
       - key: DJANGO_SETTINGS_MODULE
         value: core.settings
       - key: DJANGO_ALLOWED_HOSTS
-        value: https://frontend-8c1r.onrender.com,https://backend-pvym.onrender.com
+        value: frontend-8c1r.onrender.com,backend-pvym.onrender.com
       - key: DJANGO_CSRF_TRUSTED_ORIGINS
         value: https://frontend-8c1r.onrender.com,https://backend-pvym.onrender.com
       - key: DJANGO_SECRET_KEY
         value: "9c2!m@x9qv8$pz*k7w^e5r&y4t2v1n0b3j6h5g4f3d2s1a"
       - key: DJANGO_DEBUG
-        value: "False"
+        value: "True"
       - key: PORT
         value: "8000"
     # disk:
