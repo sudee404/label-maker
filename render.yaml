@@ -59,7 +59,7 @@ services:
         value: https://backend-pvym.onrender.com/api
       - key: NEXTAUTH_SECRET
         value: PFvUMgHGIduyQEYrOH+FE9Xf1zPjdlJhlnHqveQ7Kqo=
-      - key: NEXT_PUBLIC_API_URL
+      - key: NEXTAUTH_URL
         value: https://frontend-8c1r.onrender.com/api/auth
       - key: PORT
         value: "3000"
