@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     await api.post('/accounts/register/', {
       email,
       password,
-      name,
+      full_name:name,
     });
 
     return NextResponse.json(
