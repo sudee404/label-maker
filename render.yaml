@@ -40,11 +40,12 @@ services:
     region: oregon
     buildCommand: |
       cd frontend &&
-      npm ci &&
-      npm run build
+      corepack enable &&
+      pnpm install --frozen-lockfile &&
+      pnpm build
     startCommand: |
       cd frontend &&
-      npm run start
+      pnpm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
         value: https://backend.onrender.com
