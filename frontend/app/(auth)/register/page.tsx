@@ -1,15 +1,10 @@
-import type { Metadata } from "next"
-import { getServerSession } from "next-auth/next"
-import { redirect } from "next/navigation"
-import { authOptions } from "@/lib/auth"
+import Link from "next/link"
 import { SignUpForm } from "@/components/signup-form"
+import { redirect } from "next/navigation"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/lib/auth"
 
-export const metadata: Metadata = {
-  title: "Sign Up",
-  description: "Create a new bulk shipping platform account",
-}
-
-export default async function SignUpPage() {
+export default async function RegisterPage() {
   const session = await getServerSession(authOptions as any)
 
   if (session) {
@@ -17,13 +12,21 @@ export default async function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-white mb-2">Bulk Shipping</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary-dark to-primary">
+      <div className="w-full max-w-md px-4">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">Unified Logistics</h1>
           <p className="text-slate-400">Create your account to get started</p>
         </div>
+
         <SignUpForm />
+
+        <p className="text-center text-white/70 mt-6">
+          Already have an account?{" "}
+          <Link href="/login" className="text-accent font-semibold hover:underline">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   )

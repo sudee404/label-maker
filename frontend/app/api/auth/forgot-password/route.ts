@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     }
 
     // Call Django backend to initiate password recovery
-    const djangoResponse = await fetch("http://localhost:8000/api/forgot-password/", {
+    const djangoResponse = await fetch("http://localhost:8000/api/auth/forgot-password/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),

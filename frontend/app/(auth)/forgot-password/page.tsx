@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 }
 
 export default async function ForgotPasswordPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions as any)
 
   if (session) {
     redirect("/dashboard")
