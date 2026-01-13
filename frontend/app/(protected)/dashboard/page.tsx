@@ -86,17 +86,18 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <main className="flex-1 overflow-auto p-6">
+      <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">Welcome back, {session?.user?.name || "User"}</p>
         </div>
-        <Link href="/shipments/add">
+        <Link href="/upload">
           <Button className="gap-2 bg-accent hover:bg-accent/90">
             <Package className="w-4 h-4" />
-            Create Shipment
+            Upload Spreadsheet
             <ArrowRight className="w-4 h-4" />
           </Button>
         </Link>
@@ -268,5 +269,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
     </div>
+    </main>
   )
 }

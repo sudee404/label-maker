@@ -1,142 +1,174 @@
-"use client"
+"use client";
 
-import { useState, useMemo } from "react"
-import { Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
-
-interface ShipmentRecord {
-  id: string
-  shipFrom: any
-  shipTo: any
-  package: any
-  orderNo: string
-  shippingService?: string
-  shippingPrice?: number
-}
+import { useState, useMemo } from "react";
+import { Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import type { ShipmentRecord } from "@/lib/schemas";
 
 interface ShippingStepProps {
-  records: ShipmentRecord[]
-  onUpdate: (records: ShipmentRecord[]) => void
-  onContinue: () => void
-  onBack: () => void
-  selectedRows: Set<string>
-  onSelectRows: (rows: Set<string>) => void
+  records: ShipmentRecord[];
+  onUpdate: (records: ShipmentRecord[]) => void;
+  onContinue: () => void;
+  onBack: () => void;
+  selectedRows: Set<string>;
+  onSelectRows: (rows: Set<string>) => void;
 }
 
 const shippingServices = [
-  { id: "priority", name: "Priority Mail", basePrice: 5.0, description: "Faster delivery (2-3 days)" },
-  { id: "ground", name: "Ground Shipping", basePrice: 2.5, description: "Economy option (5-7 days)" },
-]
+  {
+    id: "priority",
+    name: "Priority Mail",
+    basePrice: 5.0,
+    description: "Faster delivery (2-3 days)",
+  },
+  {
+    id: "ground",
+    name: "Ground Shipping",
+    basePrice: 2.5,
+    description: "Economy option (5-7 days)",
+  },
+];
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 10;
 
 function calculateShippingPrice(service: string, weight: number): number {
-  const oz = (weight % 1) * 16
-  const totalOz = Math.floor(weight) * 16 + oz
+  const oz = (weight % 1) * 16;
+  const totalOz = Math.floor(weight) * 16 + oz;
 
   if (service === "priority") {
-    return 5.0 + totalOz * 0.1
+    return 5.0 + totalOz * 0.1;
   } else {
-    return 2.5 + totalOz * 0.05
+    return 2.5 + totalOz * 0.05;
   }
 }
 
-export function ShippingStep({ records, onUpdate, onContinue, onBack, selectedRows, onSelectRows }: ShippingStepProps) {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
+export function ShippingStep({
+  records,
+  onUpdate,
+  onContinue,
+  onBack,
+  selectedRows,
+  onSelectRows,
+}: ShippingStepProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filteredRecords = useMemo(() => {
     return records.filter((record) => {
-      const searchLower = searchTerm.toLowerCase()
+      const searchLower = searchTerm.toLowerCase();
       return (
         record.shipTo.firstName.toLowerCase().includes(searchLower) ||
         record.orderNo.toLowerCase().includes(searchLower)
-      )
-    })
-  }, [records, searchTerm])
+      );
+    });
+  }, [records, searchTerm]);
 
-  const totalPages = Math.ceil(filteredRecords.length / ITEMS_PER_PAGE)
+  const totalPages = Math.ceil(filteredRecords.length / ITEMS_PER_PAGE);
   const paginatedRecords = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-    return filteredRecords.slice(startIndex, startIndex + ITEMS_PER_PAGE)
-  }, [filteredRecords, currentPage])
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredRecords.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredRecords, currentPage]);
 
   const totalPrice = useMemo(() => {
-    return records.reduce((sum, record) => sum + (record.shippingPrice || 0), 0)
-  }, [records])
+    return records.reduce(
+      (sum, record) => sum + (record.shippingPrice || 0),
+      0
+    );
+  }, [records]);
 
   const handleSelectAll = () => {
     if (selectedRows.size === paginatedRecords.length) {
-      onSelectRows(new Set())
+      onSelectRows(new Set());
     } else {
-      onSelectRows(new Set(paginatedRecords.map((r) => r.id)))
+      onSelectRows(new Set(paginatedRecords.map((r) => r.id)));
     }
-  }
+  };
 
   const handleSelectRow = (id: string) => {
-    const newSelection = new Set(selectedRows)
+    const newSelection = new Set(selectedRows);
     if (newSelection.has(id)) {
-      newSelection.delete(id)
+      newSelection.delete(id);
     } else {
-      newSelection.add(id)
+      newSelection.add(id);
     }
-    onSelectRows(newSelection)
-  }
+    onSelectRows(newSelection);
+  };
 
   const handleServiceChange = (recordId: string, service: string) => {
-    const record = records.find((r) => r.id === recordId)
+    const record = records.find((r) => r.id === recordId);
     if (record) {
-      const weight = record.package.lbs + record.package.oz / 16
-      const price = calculateShippingPrice(service, weight)
+      const weight = record.package.lbs + record.package.oz / 16;
+      const price = calculateShippingPrice(service, weight);
 
-      onUpdate(records.map((r) => (r.id === recordId ? { ...r, shippingService: service, shippingPrice: price } : r)))
-      toast.success(`Updated shipping method to ${shippingServices.find((s) => s.id === service)?.name}`)
+      onUpdate(
+        records.map((r) =>
+          r.id === recordId
+            ? { ...r, shippingService: service, shippingPrice: price }
+            : r
+        )
+      );
+      toast.success(
+        `Updated shipping method to ${
+          shippingServices.find((s) => s.id === service)?.name
+        }`
+      );
     }
-  }
+  };
 
   const handleBulkServiceChange = (service: string) => {
     onUpdate(
-      records.map((r) => {
+      records.map((r: ShipmentRecord) => {
         if (selectedRows.has(r.id)) {
-          const weight = r.package.lbs + r.package.oz / 16
-          const price = calculateShippingPrice(service, weight)
-          return { ...r, shippingService: service, shippingPrice: price }
+          const weight = r.package.lbs + r.package.oz / 16;
+          const price = calculateShippingPrice(service, weight);
+          return { ...r, shippingService: service, shippingPrice: price };
         }
-        return r
-      }),
-    )
-    onSelectRows(new Set())
-    toast.success(`Updated ${selectedRows.size} shipments to ${shippingServices.find((s) => s.id === service)?.name}`)
-  }
+        return r;
+      })
+    );
+    onSelectRows(new Set());
+    toast.success(
+      `Updated ${selectedRows.size} shipments to ${
+        shippingServices.find((s) => s.id === service)?.name
+      }`
+    );
+  };
 
   const handleDeleteRecord = (id: string) => {
-    toast((t) => (
-      <div className="space-y-2">
+    const toastId = toast("Sonner");
+
+    toast(
+      <div className="space-y-2 min-w-[320px]">
         <p className="font-medium">Delete this shipment?</p>
-        <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
-        <div className="flex gap-2">
+        <p className="text-sm text-muted-foreground">
+          This action cannot be undone.
+        </p>
+        <div className="flex gap-2 mt-3">
           <button
             onClick={() => {
-              onUpdate(records.filter((r) => r.id !== id))
-              selectedRows.delete(id)
-              toast.dismiss(t)
-              toast.success("Shipment deleted successfully")
+              onUpdate(records.filter((r) => r.id !== id));
+              selectedRows.delete(id);
+              toast.dismiss(toastId);
+              toast.success("Shipment deleted successfully");
             }}
-            className="px-3 py-1 bg-destructive text-destructive-foreground rounded text-sm hover:bg-destructive/90"
+            className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md text-sm font-medium hover:bg-destructive/90"
           >
             Delete
           </button>
           <button
-            onClick={() => toast.dismiss(t)}
-            className="px-3 py-1 bg-muted text-muted-foreground rounded text-sm hover:bg-muted/80"
+            onClick={() => toast.dismiss(toastId)}
+            className="px-3 py-1.5 bg-muted text-muted-foreground rounded-md text-sm font-medium hover:bg-muted/80"
           >
             Cancel
           </button>
         </div>
-      </div>
-    ))
-  }
+      </div>,
+      {
+        id: toastId,
+      }
+    );
+  };
 
   return (
     <div className="p-8">
@@ -147,15 +179,20 @@ export function ShippingStep({ records, onUpdate, onContinue, onBack, selectedRo
             <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm">
               3
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Select Shipping Provider</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              Select Shipping Provider
+            </h1>
           </div>
           <p className="text-muted-foreground">
-            Step 3 of 4 • Choose shipping service for each shipment • Page {currentPage} of {totalPages}
+            Step 3 of 4 • Choose shipping service for each shipment • Page{" "}
+            {currentPage} of {totalPages}
           </p>
         </div>
         <div className="text-right">
           <p className="text-sm text-muted-foreground mb-1">Total Cost</p>
-          <p className="text-3xl font-bold text-primary">${totalPrice.toFixed(2)}</p>
+          <p className="text-3xl font-bold text-primary">
+            ${totalPrice.toFixed(2)}
+          </p>
         </div>
       </div>
 
@@ -167,8 +204,8 @@ export function ShippingStep({ records, onUpdate, onContinue, onBack, selectedRo
           placeholder="Search by name or order number..."
           value={searchTerm}
           onChange={(e) => {
-            setSearchTerm(e.target.value)
-            setCurrentPage(1)
+            setSearchTerm(e.target.value);
+            setCurrentPage(1);
           }}
           className="flex-1 bg-transparent outline-none text-foreground placeholder-muted-foreground text-sm"
         />
@@ -178,11 +215,17 @@ export function ShippingStep({ records, onUpdate, onContinue, onBack, selectedRo
       {selectedRows.size > 0 && (
         <div className="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-between">
           <p className="text-sm font-medium text-foreground">
-            {selectedRows.size} record{selectedRows.size > 1 ? "s" : ""} selected
+            {selectedRows.size} record{selectedRows.size > 1 ? "s" : ""}{" "}
+            selected
           </p>
           <div className="flex items-center gap-2">
             {shippingServices.map((service) => (
-              <Button key={service.id} size="sm" variant="outline" onClick={() => handleBulkServiceChange(service.id)}>
+              <Button
+                key={service.id}
+                size="sm"
+                variant="outline"
+                onClick={() => handleBulkServiceChange(service.id)}
+              >
                 Change to {service.name}
               </Button>
             ))}
@@ -199,19 +242,32 @@ export function ShippingStep({ records, onUpdate, onContinue, onBack, selectedRo
                 <th className="px-4 py-3 text-left">
                   <input
                     type="checkbox"
-                    checked={selectedRows.size === paginatedRecords.length && paginatedRecords.length > 0}
+                    checked={
+                      selectedRows.size === paginatedRecords.length &&
+                      paginatedRecords.length > 0
+                    }
                     onChange={handleSelectAll}
                     className="rounded border-border cursor-pointer"
                   />
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Recipient</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Ship To</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Order #</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
+                  Recipient
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
+                  Ship To
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
+                  Order #
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
                   Shipping Service
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">Action</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase">
+                  Price
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -236,11 +292,15 @@ export function ShippingStep({ records, onUpdate, onContinue, onBack, selectedRo
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {record.shipTo.city}, {record.shipTo.state}
                   </td>
-                  <td className="px-4 py-3 text-sm font-medium text-foreground">{record.orderNo}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-foreground">
+                    {record.orderNo}
+                  </td>
                   <td className="px-4 py-3">
                     <select
                       value={record.shippingService || "ground"}
-                      onChange={(e) => handleServiceChange(record.id, e.target.value)}
+                      onChange={(e) =>
+                        handleServiceChange(record.id, e.target.value)
+                      }
                       className="bg-muted border border-border rounded px-3 py-2 text-sm text-foreground cursor-pointer"
                     >
                       {shippingServices.map((service) => (
@@ -271,7 +331,8 @@ export function ShippingStep({ records, onUpdate, onContinue, onBack, selectedRo
       <div className="mt-6 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
-          {Math.min(currentPage * ITEMS_PER_PAGE, filteredRecords.length)} of {filteredRecords.length} shipments
+          {Math.min(currentPage * ITEMS_PER_PAGE, filteredRecords.length)} of{" "}
+          {filteredRecords.length} shipments
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -306,5 +367,5 @@ export function ShippingStep({ records, onUpdate, onContinue, onBack, selectedRo
         </Button>
       </div>
     </div>
-  )
+  );
 }

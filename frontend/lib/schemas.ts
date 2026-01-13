@@ -26,7 +26,7 @@ export const shipmentRecordSchema = z.object({
   shipFrom: addressSchema,
   shipTo: addressSchema,
   package: packageSchema,
-  shippingService: z.enum(["priority", "ground"]).optional(),
+  shippingService: z.string().optional(),
   shippingPrice: z.number().optional(),
 })
 

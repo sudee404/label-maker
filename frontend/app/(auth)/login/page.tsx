@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { SignInForm } from "@/components/signin-form"
+import { SignInForm } from "@/components/forms/signin-form"
 import { redirect } from "next/navigation"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"

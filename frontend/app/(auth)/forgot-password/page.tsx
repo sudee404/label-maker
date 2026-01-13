@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { getServerSession } from "next-auth/next"
 import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
-import { PasswordRecoveryForm } from "@/components/password-recovery-form"
+import { PasswordRecoveryForm } from "@/components/forms/password-recovery-form"
 
 export const metadata: Metadata = {
   title: "Forgot Password",

@@ -1,14 +1,16 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import { Analytics } from "@vercel/analytics/next"
-import { getServerSession } from "next-auth/next"
-import { Providers } from "@/components/providers"
-import { authOptions } from "@/lib/auth"
-import "./globals.css"
+import type React from "react";
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { getServerSession } from "next-auth/next";
+import { Providers } from "@/components/providers";
+import { authOptions } from "@/lib/auth";
+import { Toaster } from "@/components/Toaster";
 
-const _geist = Geist({ subsets: ["latin"] })
-const _geistMono = Geist_Mono({ subsets: ["latin"] })
+import "./globals.css";
+
+const _geist = Geist({ subsets: ["latin"] });
+const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "ShipHub Platform",
@@ -31,21 +33,23 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-icon.png",
   },
-}
+};
 
 export default async function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
-  const session = await getServerSession(authOptions as any)
+  const session = await getServerSession(authOptions as any);
 
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
         <Providers session={session as any}>{children}</Providers>
+        <Toaster />
+
         <Analytics />
       </body>
     </html>
-  )
+  );
 }

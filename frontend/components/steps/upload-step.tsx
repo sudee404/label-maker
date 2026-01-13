@@ -5,16 +5,8 @@ import { useState } from "react"
 import { Upload, AlertCircle, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
+import type { ShipmentRecord } from "@/lib/schemas";
 
-interface ShipmentRecord {
-  id: string
-  shipFrom: any
-  shipTo: any
-  package: any
-  orderNo: string
-  shippingService?: string
-  shippingPrice?: number
-}
 
 interface UploadStepProps {
   onUpload: (records: ShipmentRecord[]) => void
@@ -109,7 +101,7 @@ export function UploadStep({ onUpload }: UploadStepProps) {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       {/* Step Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">

@@ -2,7 +2,6 @@ import type React from "react";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { AppSidebar } from "@/components/app-sidebar";
 import { Sidebar } from "@/components/sidebar";
 import { Header } from "@/components/header";
 
@@ -20,10 +19,9 @@ export default async function ProtectedLayout({
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
-
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header/>
-        {children}
+        <Header />
+        <main className="flex-1 overflow-auto p-8">{children}</main>
       </div>
     </div>
   );

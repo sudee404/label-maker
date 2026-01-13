@@ -43,8 +43,8 @@ export default function Dashboard() {
     },
   });
 
-  const handleUpload = (uploadedRecords: ShipmentRecord[]) => {
-    setRecords(uploadedRecords);
+  const handleUpload = (records: ShipmentRecord[]) => {
+    setRecords(records);
     setCurrentStep("review");
     toast.success("Upload complete! Ready to review records.");
   };
@@ -95,7 +95,7 @@ export default function Dashboard() {
   };
 
   return (
-    <main className="flex-1 overflow-auto">
+    <>
       {currentStep === "upload" && <UploadStep onUpload={handleUpload} />}
       {currentStep === "review" && (
         <ReviewStep
@@ -135,6 +135,6 @@ export default function Dashboard() {
           onReset={handleReset}
         />
       )}
-    </main>
+    </>
   );
 }

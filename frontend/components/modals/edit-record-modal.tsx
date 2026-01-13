@@ -6,6 +6,7 @@ import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { z } from "zod"
 import { toast } from "sonner"
+import type { ShipmentRecord } from "@/lib/schemas"
 
 const US_STATES = [
   "AL",
@@ -95,12 +96,7 @@ const editRecordSchema = z.object({
 
 type EditRecordFormData = z.infer<typeof editRecordSchema>
 
-interface ShipmentRecord {
-  id: string
-  shipFrom: any
-  shipTo: any
-  package: any
-}
+
 
 interface EditRecordModalProps {
   record: ShipmentRecord
