@@ -37,13 +37,13 @@ export default function Dashboard() {
         .then((res) => res?.data),
   });
 
-  const shipments = useQuery({
+  const { data: { data: shipments = [] } = {} } = useQuery({
     queryKey: ["shipments", `${batch}`],
     queryFn: async () =>
       await axios
         .get("/api/shipments", { params: { batch: batch } })
         .then((res) => res?.data),
-    enabled: !!batch,
+    // enabled: !!batch,
   });
 
   const handleUpload = (batch: String) => {
@@ -101,7 +101,7 @@ export default function Dashboard() {
       {currentStep === "upload" && <UploadStep onUpload={handleUpload} />}
       {currentStep === "review" && (
         <ReviewStep
-          records={shipments}
+          records={shipments?.results}
           onUpdate={handleUpdateRecords}
           onContinue={() => setCurrentStep("shipping")}
           onBack={() => handleNavigateBack("upload")}

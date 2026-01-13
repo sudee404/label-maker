@@ -15,7 +15,7 @@ interface ShippingStepProps {
   onSelectRows: (rows: Set<string>) => void;
 }
 
-const shippingServices = [
+const shipping_services = [
   {
     id: "priority",
     name: "Priority Mail",
@@ -32,7 +32,7 @@ const shippingServices = [
 
 const ITEMS_PER_PAGE = 10;
 
-function calculateShippingPrice(service: string, weight: number): number {
+function calculateprice(service: string, weight: number): number {
   const oz = (weight % 1) * 16;
   const totalOz = Math.floor(weight) * 16 + oz;
 
@@ -58,8 +58,8 @@ export function ShippingStep({
     return records.filter((record) => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        record.shipTo.firstName.toLowerCase().includes(searchLower) ||
-        record.orderNo.toLowerCase().includes(searchLower)
+        record.shipTo.first_name.toLowerCase().includes(searchLower) ||
+        record.order_no.toLowerCase().includes(searchLower)
       );
     });
   }, [records, searchTerm]);
@@ -72,7 +72,7 @@ export function ShippingStep({
 
   const totalPrice = useMemo(() => {
     return records.reduce(
-      (sum, record) => sum + (record.shippingPrice || 0),
+      (sum, record) => sum + (record.price || 0),
       0
     );
   }, [records]);
@@ -99,18 +99,18 @@ export function ShippingStep({
     const record = records.find((r) => r.id === recordId);
     if (record) {
       const weight = record.package.lbs + record.package.oz / 16;
-      const price = calculateShippingPrice(service, weight);
+      const price = calculateprice(service, weight);
 
       onUpdate(
         records.map((r) =>
           r.id === recordId
-            ? { ...r, shippingService: service, shippingPrice: price }
+            ? { ...r, shipping_service: service, price: price }
             : r
         )
       );
       toast.success(
         `Updated shipping method to ${
-          shippingServices.find((s) => s.id === service)?.name
+          shipping_services.find((s) => s.id === service)?.name
         }`
       );
     }
@@ -121,8 +121,8 @@ export function ShippingStep({
       records.map((r: ShipmentRecord) => {
         if (selectedRows.has(r.id)) {
           const weight = r.package.lbs + r.package.oz / 16;
-          const price = calculateShippingPrice(service, weight);
-          return { ...r, shippingService: service, shippingPrice: price };
+          const price = calculateprice(service, weight);
+          return { ...r, shipping_service: service, price: price };
         }
         return r;
       })
@@ -130,7 +130,7 @@ export function ShippingStep({
     onSelectRows(new Set());
     toast.success(
       `Updated ${selectedRows.size} shipments to ${
-        shippingServices.find((s) => s.id === service)?.name
+        shipping_services.find((s) => s.id === service)?.name
       }`
     );
   };
@@ -215,7 +215,7 @@ export function ShippingStep({
             selected
           </p>
           <div className="flex items-center gap-2">
-            {shippingServices.map((service) => (
+            {shipping_services.map((service) => (
               <Button
                 key={service.id}
                 size="sm"
@@ -283,23 +283,23 @@ export function ShippingStep({
                     />
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-foreground">
-                    {record.shipTo.firstName} {record.shipTo.lastName}
+                    {record.shipTo.first_name} {record.shipTo.last_name}
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {record.shipTo.city}, {record.shipTo.state}
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-foreground">
-                    {record.orderNo}
+                    {record.order_no}
                   </td>
                   <td className="px-4 py-3">
                     <select
-                      value={record.shippingService || "ground"}
+                      value={record.shipping_service || "ground"}
                       onChange={(e) =>
                         handleServiceChange(record.id, e.target.value)
                       }
                       className="bg-muted border border-border rounded px-3 py-2 text-sm text-foreground cursor-pointer"
                     >
-                      {shippingServices.map((service) => (
+                      {shipping_services.map((service) => (
                         <option key={service.id} value={service.id}>
                           {service.name}
                         </option>
@@ -307,7 +307,7 @@ export function ShippingStep({
                     </select>
                   </td>
                   <td className="px-4 py-3 text-sm font-semibold text-right text-primary">
-                    ${(record.shippingPrice || 0).toFixed(2)}
+                    ${(record.price || 0).toFixed(2)}
                   </td>
                   <td className="px-4 py-3">
                     <button

@@ -7,6 +7,7 @@ import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { z } from "zod"
+import { ShipmentRecord } from "@/lib/schemas"
 
 const US_STATES = [
   "AL",
@@ -64,10 +65,10 @@ const US_STATES = [
 ]
 
 const bulkAddressSchema = z.object({
-  firstName: z.string().min(1, "First name required"),
-  lastName: z.string().min(1, "Last name required"),
+  first_name: z.string().min(1, "First name required"),
+  last_name: z.string().min(1, "Last name required"),
   address: z.string().min(1, "Address required"),
-  address2: z.string().optional(),
+  address_line2: z.string().optional(),
   city: z.string().min(1, "City required"),
   state: z.string().min(2, "State required"),
   zip: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code"),
@@ -88,11 +89,6 @@ const bulkPackageSchema = z.object({
 type BulkAddressFormData = z.infer<typeof bulkAddressSchema>
 type BulkPackageFormData = z.infer<typeof bulkPackageSchema>
 
-interface ShipmentRecord {
-  id: string
-  shipFrom: any
-  package: any
-}
 
 interface BulkActionsModalProps {
   type: "address" | "package"
@@ -117,10 +113,10 @@ export function BulkActionsModal({
     resolver: zodResolver(bulkAddressSchema),
     mode: "onBlur",
     defaultValues: {
-      firstName: "",
-      lastName: "",
+      first_name: "",
+      last_name: "",
       address: "",
-      address2: "",
+      address_line2: "",
       city: "",
       state: "CA",
       zip: "",
@@ -143,10 +139,10 @@ export function BulkActionsModal({
   const onAddressSubmit = (data: BulkAddressFormData) => {
     onApply({
       shipFrom: {
-        firstName: data.firstName,
-        lastName: data.lastName,
+        first_name: data.first_name,
+        last_name: data.last_name,
         address: data.address,
-        address2: data.address2,
+        address_line2: data.address_line2,
         city: data.city,
         state: data.state,
         zip: data.zip,
@@ -198,13 +194,13 @@ export function BulkActionsModal({
                   <label className="block text-sm font-medium text-foreground mb-1">First Name</label>
                   <input
                     type="text"
-                    {...addressForm.register("firstName")}
+                    {...addressForm.register("first_name")}
                     className={`w-full px-3 py-2 bg-muted border rounded text-foreground text-sm ${
-                      addressForm.formState.errors.firstName ? "border-destructive" : "border-border"
+                      addressForm.formState.errors.first_name ? "border-destructive" : "border-border"
                     }`}
                   />
-                  {addressForm.formState.errors.firstName && (
-                    <p className="text-xs text-destructive mt-1">{addressForm.formState.errors.firstName.message}</p>
+                  {addressForm.formState.errors.first_name && (
+                    <p className="text-xs text-destructive mt-1">{addressForm.formState.errors.first_name.message}</p>
                   )}
                 </div>
 
@@ -212,13 +208,13 @@ export function BulkActionsModal({
                   <label className="block text-sm font-medium text-foreground mb-1">Last Name</label>
                   <input
                     type="text"
-                    {...addressForm.register("lastName")}
+                    {...addressForm.register("last_name")}
                     className={`w-full px-3 py-2 bg-muted border rounded text-foreground text-sm ${
-                      addressForm.formState.errors.lastName ? "border-destructive" : "border-border"
+                      addressForm.formState.errors.last_name ? "border-destructive" : "border-border"
                     }`}
                   />
-                  {addressForm.formState.errors.lastName && (
-                    <p className="text-xs text-destructive mt-1">{addressForm.formState.errors.lastName.message}</p>
+                  {addressForm.formState.errors.last_name && (
+                    <p className="text-xs text-destructive mt-1">{addressForm.formState.errors.last_name.message}</p>
                   )}
                 </div>
               </div>
@@ -241,7 +237,7 @@ export function BulkActionsModal({
                 <label className="block text-sm font-medium text-foreground mb-1">Address 2 (Optional)</label>
                 <input
                   type="text"
-                  {...addressForm.register("address2")}
+                  {...addressForm.register("address_line2")}
                   className="w-full px-3 py-2 bg-muted border border-border rounded text-foreground text-sm"
                 />
               </div>

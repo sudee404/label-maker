@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 interface ShipmentRecord {
   id: string;
-  shippingPrice?: number;
+  price?: number;
 }
 
 interface PurchaseStepProps {
@@ -27,7 +27,7 @@ export function PurchaseStep({
   const [agreeTerms, setAgreeTerms] = useState(false);
 
   const grandTotal = records.reduce(
-    (sum, record) => sum + (record.shippingPrice || 0),
+    (sum, record) => sum + (record.price || 0),
     0
   );
   const labelCost = records.length * 0.5; // $0.50 per label

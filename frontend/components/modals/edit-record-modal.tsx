@@ -64,8 +64,8 @@ const US_STATES = [
 ]
 
 const editRecordSchema = z.object({
-  shipFromFirstName: z.string().min(1, "First name required"),
-  shipFromLastName: z.string().min(1, "Last name required"),
+  shipFromfirst_name: z.string().min(1, "First name required"),
+  shipFromlast_name: z.string().min(1, "Last name required"),
   shipFromAddress: z.string().min(1, "Address required"),
   shipFromAddress2: z.string().optional(),
   shipFromCity: z.string().min(1, "City required"),
@@ -75,8 +75,8 @@ const editRecordSchema = z.object({
     .string()
     .min(1, "Phone required")
     .refine((val) => /^\d{10}$/.test(val.replace(/\D/g, "")), "Phone must be 10 digits"),
-  shipToFirstName: z.string().min(1, "First name required"),
-  shipToLastName: z.string().min(1, "Last name required"),
+  shipTofirst_name: z.string().min(1, "First name required"),
+  shipTolast_name: z.string().min(1, "Last name required"),
   shipToAddress: z.string().min(1, "Address required"),
   shipToAddress2: z.string().optional(),
   shipToCity: z.string().min(1, "City required"),
@@ -123,16 +123,16 @@ export function EditRecordModal({ record, onSave, onClose }: EditRecordModalProp
     resolver: zodResolver(editRecordSchema),
     mode: "onBlur",
     defaultValues: {
-      shipFromFirstName: record.shipFrom?.firstName || "",
-      shipFromLastName: record.shipFrom?.lastName || "",
+      shipFromfirst_name: record.shipFrom?.first_name || "",
+      shipFromlast_name: record.shipFrom?.last_name || "",
       shipFromAddress: record.shipFrom?.address || "",
       shipFromAddress2: record.shipFrom?.address2 || "",
       shipFromCity: record.shipFrom?.city || "",
       shipFromState: record.shipFrom?.state || "CA",
       shipFromZip: record.shipFrom?.zip || "",
       shipFromPhone: sanitizePhone(record.shipFrom?.phone),
-      shipToFirstName: record.shipTo?.firstName || "",
-      shipToLastName: record.shipTo?.lastName || "",
+      shipTofirst_name: record.shipTo?.first_name || "",
+      shipTolast_name: record.shipTo?.last_name || "",
       shipToAddress: record.shipTo?.address || "",
       shipToAddress2: record.shipTo?.address2 || "",
       shipToCity: record.shipTo?.city || "",
@@ -152,8 +152,8 @@ export function EditRecordModal({ record, onSave, onClose }: EditRecordModalProp
     const updated: ShipmentRecord = {
       ...record,
       shipFrom: {
-        firstName: data.shipFromFirstName,
-        lastName: data.shipFromLastName,
+        first_name: data.shipFromfirst_name,
+        last_name: data.shipFromlast_name,
         address: data.shipFromAddress,
         address2: data.shipFromAddress2 ?? "",
         city: data.shipFromCity,
@@ -162,8 +162,8 @@ export function EditRecordModal({ record, onSave, onClose }: EditRecordModalProp
         phone: data.shipFromPhone,
       },
       shipTo: {
-        firstName: data.shipToFirstName,
-        lastName: data.shipToLastName,
+        first_name: data.shipTofirst_name,
+        last_name: data.shipTolast_name,
         address: data.shipToAddress,
         address2: data.shipToAddress2 ?? "",
         city: data.shipToCity,
@@ -207,13 +207,13 @@ export function EditRecordModal({ record, onSave, onClose }: EditRecordModalProp
                 <label className="block text-sm font-medium text-foreground mb-1">First Name</label>
                 <input
                   type="text"
-                  {...register("shipFromFirstName")}
+                  {...register("shipFromfirst_name")}
                   className={`w-full px-3 py-2 bg-muted border rounded text-foreground text-sm ${
-                    errors.shipFromFirstName ? "border-destructive" : "border-border"
+                    errors.shipFromfirst_name ? "border-destructive" : "border-border"
                   }`}
                 />
-                {errors.shipFromFirstName && (
-                  <p className="text-xs text-destructive mt-1">{errors.shipFromFirstName.message}</p>
+                {errors.shipFromfirst_name && (
+                  <p className="text-xs text-destructive mt-1">{errors.shipFromfirst_name.message}</p>
                 )}
               </div>
 
@@ -221,13 +221,13 @@ export function EditRecordModal({ record, onSave, onClose }: EditRecordModalProp
                 <label className="block text-sm font-medium text-foreground mb-1">Last Name</label>
                 <input
                   type="text"
-                  {...register("shipFromLastName")}
+                  {...register("shipFromlast_name")}
                   className={`w-full px-3 py-2 bg-muted border rounded text-foreground text-sm ${
-                    errors.shipFromLastName ? "border-destructive" : "border-border"
+                    errors.shipFromlast_name ? "border-destructive" : "border-border"
                   }`}
                 />
-                {errors.shipFromLastName && (
-                  <p className="text-xs text-destructive mt-1">{errors.shipFromLastName.message}</p>
+                {errors.shipFromlast_name && (
+                  <p className="text-xs text-destructive mt-1">{errors.shipFromlast_name.message}</p>
                 )}
               </div>
             </div>
@@ -325,13 +325,13 @@ export function EditRecordModal({ record, onSave, onClose }: EditRecordModalProp
                 <label className="block text-sm font-medium text-foreground mb-1">First Name</label>
                 <input
                   type="text"
-                  {...register("shipToFirstName")}
+                  {...register("shipTofirst_name")}
                   className={`w-full px-3 py-2 bg-muted border rounded text-foreground text-sm ${
-                    errors.shipToFirstName ? "border-destructive" : "border-border"
+                    errors.shipTofirst_name ? "border-destructive" : "border-border"
                   }`}
                 />
-                {errors.shipToFirstName && (
-                  <p className="text-xs text-destructive mt-1">{errors.shipToFirstName.message}</p>
+                {errors.shipTofirst_name && (
+                  <p className="text-xs text-destructive mt-1">{errors.shipTofirst_name.message}</p>
                 )}
               </div>
 
@@ -339,13 +339,13 @@ export function EditRecordModal({ record, onSave, onClose }: EditRecordModalProp
                 <label className="block text-sm font-medium text-foreground mb-1">Last Name</label>
                 <input
                   type="text"
-                  {...register("shipToLastName")}
+                  {...register("shipTolast_name")}
                   className={`w-full px-3 py-2 bg-muted border rounded text-foreground text-sm ${
-                    errors.shipToLastName ? "border-destructive" : "border-border"
+                    errors.shipTolast_name ? "border-destructive" : "border-border"
                   }`}
                 />
-                {errors.shipToLastName && (
-                  <p className="text-xs text-destructive mt-1">{errors.shipToLastName.message}</p>
+                {errors.shipTolast_name && (
+                  <p className="text-xs text-destructive mt-1">{errors.shipTolast_name.message}</p>
                 )}
               </div>
             </div>

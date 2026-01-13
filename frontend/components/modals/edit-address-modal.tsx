@@ -117,24 +117,24 @@ export function EditAddressModal({ record, type, onSave, onClose }: EditAddressM
             <label className="block text-sm font-medium text-foreground mb-1">First Name</label>
             <input
               type="text"
-              {...register("firstName")}
+              {...register("first_name")}
               className={`w-full px-3 py-2 bg-muted border rounded text-foreground text-sm ${
-                errors.firstName ? "border-destructive" : "border-border"
+                errors.first_name ? "border-destructive" : "border-border"
               }`}
             />
-            {errors.firstName && <p className="text-xs text-destructive mt-1">{errors.firstName.message}</p>}
+            {errors.first_name && <p className="text-xs text-destructive mt-1">{errors.first_name.message}</p>}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Last Name</label>
             <input
               type="text"
-              {...register("lastName")}
+              {...register("last_name")}
               className={`w-full px-3 py-2 bg-muted border rounded text-foreground text-sm ${
-                errors.lastName ? "border-destructive" : "border-border"
+                errors.last_name ? "border-destructive" : "border-border"
               }`}
             />
-            {errors.lastName && <p className="text-xs text-destructive mt-1">{errors.lastName.message}</p>}
+            {errors.last_name && <p className="text-xs text-destructive mt-1">{errors.last_name.message}</p>}
           </div>
 
           <div>

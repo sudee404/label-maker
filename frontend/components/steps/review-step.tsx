@@ -39,28 +39,28 @@ export function ReviewStep({
   const [currentPage, setCurrentPage] = useState(1);
 
   const filteredRecords = useMemo(() => {
-    return records.filter((record) => {
+    return records?.filter((record) => {
       const searchLower = searchTerm.toLowerCase();
       return (
-        record.shipTo.firstName.toLowerCase().includes(searchLower) ||
-        record.shipTo.lastName.toLowerCase().includes(searchLower) ||
-        record.shipTo.address.toLowerCase().includes(searchLower) ||
-        record.orderNo.toLowerCase().includes(searchLower)
+        record?.ship_to?.first_name.toLowerCase().includes(searchLower) ||
+        record?.ship_to?.last_name.toLowerCase().includes(searchLower) ||
+        record?.ship_to?.address_line1.toLowerCase().includes(searchLower) ||
+        record?.order_no.toLowerCase().includes(searchLower)
       );
     });
   }, [records, searchTerm]);
 
-  const totalPages = Math.ceil(filteredRecords.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredRecords?.length / ITEMS_PER_PAGE);
   const paginatedRecords = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredRecords.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    return filteredRecords?.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredRecords, currentPage]);
 
   const handleSelectAll = () => {
-    if (selectedRows.size === paginatedRecords.length) {
+    if (selectedRows.size === paginatedRecords?.length) {
       onSelectRows(new Set());
     } else {
-      onSelectRows(new Set(paginatedRecords.map((r) => r.id)));
+      onSelectRows(new Set(paginatedRecords?.map((r) => r.id)));
     }
   };
 
@@ -84,7 +84,7 @@ export function ReviewStep({
         <div className="flex gap-2">
           <button
             onClick={() => {
-              onUpdate(records.filter((r) => r.id !== id));
+              onUpdate(records?.filter((r) => r.id !== id));
               selectedRows.delete(id);
               toast.dismiss();
               toast.success("Record deleted successfully");
@@ -106,7 +106,7 @@ export function ReviewStep({
 
   const handleEditSave = (updatedRecord: ShipmentRecord) => {
     onUpdate(
-      records.map((r) => (r.id === updatedRecord.id ? updatedRecord : r))
+      records?.map((r) => (r.id === updatedRecord?.id ? updatedRecord : r))
     );
     setEditingRecord(null);
     toast.success("Record updated successfully");
@@ -123,7 +123,7 @@ export function ReviewStep({
         <div className="flex gap-2">
           <button
             onClick={() => {
-              onUpdate(records.filter((r) => !selectedRows.has(r.id)));
+              onUpdate(records?.filter((r) => !selectedRows.has(r.id)));
               onSelectRows(new Set());
               toast.dismiss();
               toast.success(`${selectedRows.size} records deleted`);
@@ -156,7 +156,7 @@ export function ReviewStep({
           </h1>
         </div>
         <p className="text-muted-foreground">
-          Step 2 of 4 • {records.length} records loaded • Page {currentPage} of{" "}
+          Step 2 of 4 • {records?.length} records loaded • Page {currentPage} of{" "}
           {totalPages}
         </p>
       </div>
@@ -215,8 +215,8 @@ export function ReviewStep({
                   <input
                     type="checkbox"
                     checked={
-                      selectedRows.size === paginatedRecords.length &&
-                      paginatedRecords.length > 0
+                      selectedRows.size === paginatedRecords?.length &&
+                      paginatedRecords?.length > 0
                     }
                     onChange={handleSelectAll}
                     className="rounded border-border cursor-pointer"
@@ -240,44 +240,44 @@ export function ReviewStep({
               </tr>
             </thead>
             <tbody>
-              {paginatedRecords.map((record, idx) => (
+              {paginatedRecords?.map((record, idx) => (
                 <tr
-                  key={record.id}
+                  key={record?.id}
                   className={`border-b border-border transition-colors ${
                     idx % 2 === 1 ? "bg-muted/30" : ""
-                  } ${selectedRows.has(record.id) ? "bg-primary/10" : ""}`}
+                  } ${selectedRows.has(record?.id) ? "bg-primary/10" : ""}`}
                 >
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
-                      checked={selectedRows.has(record.id)}
-                      onChange={() => handleSelectRow(record.id)}
+                      checked={selectedRows.has(record?.id)}
+                      onChange={() => handleSelectRow(record?.id)}
                       className="rounded border-border cursor-pointer"
                     />
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <div className="font-medium text-foreground">
-                      {record.shipFrom.firstName} {record.shipFrom.lastName}
+                      {record?.ship_from?.first_name} {record?.ship_from?.last_name}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {record.shipFrom.city}, {record.shipFrom.state}
+                      {record?.ship_from?.city}, {record?.ship_from?.state}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <div className="font-medium text-foreground">
-                      {record.shipTo.firstName} {record.shipTo.lastName}
+                      {record?.ship_to?.first_name} {record?.ship_to?.last_name}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {record.shipTo.address}
+                      {record?.ship_to?.address_line1}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {record.package.length}x{record.package.width}x
-                    {record.package.height}" • {record.package.lbs}lb{" "}
-                    {record.package.oz}oz
+                    {record?.package?.length_inches}x{record?.package?.width_inches}x
+                    {record?.package?.height_inches}" • {record?.package?.weight_lbs}lb{" "}
+                    {record?.package?.weight_oz}oz
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-foreground">
-                    {record.orderNo}
+                    {record?.order_no}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -289,7 +289,7 @@ export function ReviewStep({
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteRecord(record.id)}
+                        onClick={() => handleDeleteRecord(record?.id)}
                         className="p-1 hover:bg-destructive/20 rounded text-muted-foreground hover:text-destructive transition-colors"
                         title="Delete record"
                       >
@@ -307,8 +307,8 @@ export function ReviewStep({
       <div className="mt-6 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
-          {Math.min(currentPage * ITEMS_PER_PAGE, filteredRecords.length)} of{" "}
-          {filteredRecords.length} records
+          {Math.min(currentPage * ITEMS_PER_PAGE, filteredRecords?.length)} of{" "}
+          {filteredRecords?.length} records
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -359,7 +359,7 @@ export function ReviewStep({
           records={records}
           selectedIds={selectedRows}
           onApply={(updates) => {
-            const updated = records.map((r) =>
+            const updated = records?.map((r) =>
               selectedRows.has(r.id) ? { ...r, ...updates } : r
             );
             onUpdate(updated);
