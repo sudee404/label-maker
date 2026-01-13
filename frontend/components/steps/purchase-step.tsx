@@ -29,7 +29,7 @@ export function PurchaseStep({ records, labelSize, onLabelSizeChange, onPurchase
       return
     }
 
-    toast((t) => (
+    toast(
       <div className="space-y-2">
         <p className="font-medium">Confirm Purchase</p>
         <p className="text-sm text-muted-foreground">
@@ -39,7 +39,7 @@ export function PurchaseStep({ records, labelSize, onLabelSizeChange, onPurchase
           <button
             onClick={() => {
               onPurchase()
-              toast.dismiss(t)
+              toast.dismiss()
               toast.success("Purchase completed! Your labels are being generated...")
             }}
             className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90"
@@ -47,14 +47,14 @@ export function PurchaseStep({ records, labelSize, onLabelSizeChange, onPurchase
             Confirm Purchase
           </button>
           <button
-            onClick={() => toast.dismiss(t)}
+            onClick={() => toast.dismiss()}
             className="px-3 py-1 bg-muted text-muted-foreground rounded text-sm hover:bg-muted/80"
           >
             Cancel
           </button>
         </div>
       </div>
-    ))
+    )
   }
 
   return (
