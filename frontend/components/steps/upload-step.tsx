@@ -1,19 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Upload, AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { ShipmentRecord } from "@/lib/schemas";
 
 interface UploadStepProps {
-  onUpload: (previewRecords: ShipmentRecord[], batchId: string) => void;
+  onUpload: (batchId: string) => void;
 }
 
 export function UploadStep({ onUpload }: UploadStepProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<"idle" | "success" | "error">("idle");
+  const [uploadStatus, setUploadStatus] = useState<
+    "idle" | "success" | "error"
+  >("idle");
   const [statusMessage, setStatusMessage] = useState("");
   const [recordCount, setRecordCount] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -54,13 +57,17 @@ export function UploadStep({ onUpload }: UploadStepProps) {
           if (result.success) {
             setRecordCount(result.total_records);
             setUploadStatus("success");
-            setStatusMessage(`Successfully uploaded ${result.total_records} records`);
+            setStatusMessage(
+              `Successfully uploaded ${result.total_records} records`
+            );
 
-            toast.success(`Batch created with ${result.total_records} records!`);
+            toast.success(
+              `Batch created with ${result.total_records} records!`
+            );
 
             // Pass preview + batch_id to next step
             setTimeout(() => {
-              onUpload(result.preview || [], result.batch_id);
+              onUpload(result.batch_id);
             }, 1000);
           } else {
             throw new Error(result.error || "Upload failed");
@@ -123,7 +130,7 @@ export function UploadStep({ onUpload }: UploadStepProps) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div>
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
@@ -142,8 +149,11 @@ export function UploadStep({ onUpload }: UploadStepProps) {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-lg p-12 text-center transition-all cursor-pointer ${
-              isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary"
+              isDragging
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary"
             } ${isLoading ? "opacity-75 pointer-events-none" : ""}`}
           >
             <div className="flex flex-col items-center gap-4">
@@ -159,22 +169,33 @@ export function UploadStep({ onUpload }: UploadStepProps) {
                 </h3>
                 {!isLoading && (
                   <>
-                    <p className="text-muted-foreground text-sm mb-4">or click to browse</p>
-                    <label className="cursor-pointer">
+                    <p className="text-muted-foreground text-sm mb-4">
+                      or click to browse
+                    </p>
+                    <label htmlFor="csv-upload" className="cursor-pointer">
                       <input
+                        id="csv-upload"
+                        ref={fileInputRef}
                         type="file"
                         accept=".csv"
                         onChange={handleInputChange}
                         disabled={isLoading}
                         className="hidden"
                       />
-                      <Button disabled={isLoading}>Select File</Button>
+                      <Button
+                        disabled={isLoading}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        Select File
+                      </Button>
                     </label>
                   </>
                 )}
               </div>
 
-              <p className="text-xs text-muted-foreground">Supported: CSV (.csv)</p>
+              <p className="text-xs text-muted-foreground">
+                Supported: CSV (.csv)
+              </p>
             </div>
           </div>
 
@@ -188,7 +209,8 @@ export function UploadStep({ onUpload }: UploadStepProps) {
                 />
               </div>
               <p className="text-sm text-center text-muted-foreground">
-                {uploadProgress}% {uploadProgress === 100 ? "Processing..." : "uploaded"}
+                {uploadProgress}%{" "}
+                {uploadProgress === 100 ? "Processing..." : "uploaded"}
               </p>
             </div>
           )}

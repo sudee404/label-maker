@@ -37,15 +37,9 @@ class Package(BaseModel):
     """Model definition for Package."""
 
     name = models.CharField(max_length=100)
-    length_inches = models.DecimalField(
-        max_digits=5, decimal_places=2, null=True, blank=True
-    )
-    width_inches = models.DecimalField(
-        max_digits=5, decimal_places=2, null=True, blank=True
-    )
-    height_inches = models.DecimalField(
-        max_digits=5, decimal_places=2, null=True, blank=True
-    )
+    length_inches = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
+    width_inches = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
+    height_inches = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
     weight_lbs = models.IntegerField(default=0)
     weight_oz = models.IntegerField(default=0)
     sku = models.CharField(max_length=50, blank=True)

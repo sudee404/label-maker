@@ -15,44 +15,39 @@ type Step = "upload" | "review" | "shipping" | "purchase" | "success";
 
 export default function Dashboard() {
   const [currentStep, setCurrentStep] = useState<Step>("upload");
+  const [batch, setBatch] = useState<String | undefined>();
+
   const [records, setRecords] = useState<ShipmentRecord[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [labelSize, setLabelSize] = useState<"letter" | "4x6">("4x6");
-  const [savedAddresses, setSavedAddresses] = useState<
-    Record<string, ShipmentRecord["shipFrom"]>
-  >({
-    default: {
-      firstName: "John",
-      lastName: "Doe",
-      address: "123 Main St",
-      address2: "Suite 100",
-      city: "New York",
-      zip: "10001",
-      state: "NY",
-      phone: "555-123-4567",
-    },
+
+  const savedAddresses = useQuery({
+    queryKey: ["addresses"],
+    queryFn: async () =>
+      await axios
+        .get("/api/addresses", { params: { saved: true } })
+        .then((res) => res?.data),
   });
 
-  // const addresses = useQuery({
-  //   queryKey: ["addresses"],
-  //   queryFn: async () =>
-  //     await axios.get("/api/addresses").then((res) => res?.data),
-  // });
-  const [savedPackages, setSavedPackages] = useState<
-    Record<string, ShipmentRecord["package"]>
-  >({
-    standard: {
-      length: 12,
-      width: 8,
-      height: 6,
-      lbs: 2,
-      oz: 0,
-      sku: "STD-001",
-    },
+  const savedPackages = useQuery({
+    queryKey: ["packages"],
+    queryFn: async () =>
+      await axios
+        .get("/api/packages", { params: { saved: true } })
+        .then((res) => res?.data),
   });
 
-  const handleUpload = (records: ShipmentRecord[]) => {
-    setRecords(records);
+  const shipments = useQuery({
+    queryKey: ["shipments", `${batch}`],
+    queryFn: async () =>
+      await axios
+        .get("/api/shipments", { params: { batch: batch } })
+        .then((res) => res?.data),
+    enabled: !!batch,
+  });
+
+  const handleUpload = (batch: String) => {
+    setBatch(batch);
     setCurrentStep("review");
   };
 
@@ -68,6 +63,7 @@ export default function Dashboard() {
             <button
               onClick={() => {
                 setCurrentStep(targetStep);
+                // delete batch
                 setRecords([]);
                 setSelectedRows(new Set());
                 toast.dismiss();
@@ -99,13 +95,13 @@ export default function Dashboard() {
     setRecords([]);
     setSelectedRows(new Set());
   };
-
+  console.log(shipments);
   return (
     <>
       {currentStep === "upload" && <UploadStep onUpload={handleUpload} />}
       {currentStep === "review" && (
         <ReviewStep
-          records={records}
+          records={shipments}
           onUpdate={handleUpdateRecords}
           onContinue={() => setCurrentStep("shipping")}
           onBack={() => handleNavigateBack("upload")}

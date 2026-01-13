@@ -94,7 +94,7 @@ def create_sample_packages(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("core", "0002_alter_batch_options_batch_is_active_alter_batch_id"),
+        ("core", "0002_alter_address_options_alter_batch_options_and_more"),
     ]
 
     operations = [

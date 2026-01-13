@@ -6,13 +6,7 @@ import { getServerSession } from "next-auth/next";
 import { Providers } from "@/components/providers";
 import { authOptions } from "@/lib/auth";
 import { Toaster } from "@/components/Toaster";
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
+import MyProviders from "./providers";
 
 import "./globals.css";
 
@@ -48,14 +42,13 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getServerSession(authOptions as any);
-  const queryClient = new QueryClient();
 
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        <QueryClientProvider client={queryClient}>
+        <MyProviders>
           <Providers session={session as any}>{children} </Providers>
-        </QueryClientProvider>
+        </MyProviders>
         <Toaster />
 
         <Analytics />
