@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
 
-    const response = await api.get("/core/addresses/", {
+    const response = await api.get("/core/shipments/", {
       params: searchParams,
     });
     const result = response.data;
@@ -35,5 +35,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: message }, { status });
   }
 }
-
-

@@ -1,78 +1,67 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Edit2, Trash2, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState } from "react";
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  ColumnDef,
+} from "@tanstack/react-table";
+import {
+  Edit2,
+  Trash2,
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { BulkActionsModal } from "@/components/modals/bulk-actions-modal";
 import { EditRecordModal } from "@/components/modals/edit-record-modal";
 import { toast } from "sonner";
 import type { ShipmentRecord } from "@/lib/schemas";
+import { ShipmentFilter } from "@/app/(protected)/upload/page";
+import axios from "axios";
 
 interface ReviewStepProps {
   records: ShipmentRecord[];
-  onUpdate: (records: ShipmentRecord[]) => void;
+  data: {
+    current: number;
+    total_pages: number;
+    count: number;
+  };
+  batch: String | null | undefined;
+  loading: boolean;
+  onUpdate: () => void;
   onContinue: () => void;
+  filter: ShipmentFilter;
+  setFilter: (filter: any) => void;
   onBack: () => void;
   selectedRows: Set<string>;
   onSelectRows: (rows: Set<string>) => void;
-  savedAddresses?: Record<string, any>;
-  savedPackages?: Record<string, any>;
 }
-
-const ITEMS_PER_PAGE = 10;
 
 export function ReviewStep({
   records,
+  data,
+  batch,
+  loading,
   onUpdate,
+  filter,
+  setFilter,
   onContinue,
   onBack,
   selectedRows,
   onSelectRows,
 }: ReviewStepProps) {
-  const [searchTerm, setSearchTerm] = useState("");
   const [editingRecord, setEditingRecord] = useState<ShipmentRecord | null>(
     null
   );
   const [bulkActionType, setBulkActionType] = useState<
     "address" | "package" | null
   >(null);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const filteredRecords = useMemo(() => {
-    return records?.filter((record) => {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        record?.ship_to?.first_name.toLowerCase().includes(searchLower) ||
-        record?.ship_to?.last_name.toLowerCase().includes(searchLower) ||
-        record?.ship_to?.address_line1.toLowerCase().includes(searchLower) ||
-        record?.order_no.toLowerCase().includes(searchLower)
-      );
-    });
-  }, [records, searchTerm]);
-
-  const totalPages = Math.ceil(filteredRecords?.length / ITEMS_PER_PAGE);
-  const paginatedRecords = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredRecords?.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredRecords, currentPage]);
-
-  const handleSelectAll = () => {
-    if (selectedRows.size === paginatedRecords?.length) {
-      onSelectRows(new Set());
-    } else {
-      onSelectRows(new Set(paginatedRecords?.map((r) => r.id)));
-    }
-  };
-
-  const handleSelectRow = (id: string) => {
-    const newSelection = new Set(selectedRows);
-    if (newSelection.has(id)) {
-      newSelection.delete(id);
-    } else {
-      newSelection.add(id);
-    }
-    onSelectRows(newSelection);
-  };
+  const [searchInput, setSearchInput] = useState(filter.search || "");
 
   const handleDeleteRecord = (id: string) => {
     toast(
@@ -83,11 +72,21 @@ export function ReviewStep({
         </p>
         <div className="flex gap-2">
           <button
-            onClick={() => {
-              onUpdate(records?.filter((r) => r.id !== id));
-              selectedRows.delete(id);
-              toast.dismiss();
-              toast.success("Record deleted successfully");
+            onClick={async () => {
+              await axios
+                .delete(`/api/shipments/${id}`)
+                .then(() => {
+                  onUpdate();
+                  const newSelection = new Set(selectedRows);
+                  newSelection.delete(id);
+                  onSelectRows(newSelection);
+                  toast.dismiss();
+                  toast.success("Record deleted successfully");
+                })
+                .catch((err) => {
+                  console.log(err);
+                  toast.error("Error deleting ");
+                });
             }}
             className="px-3 py-1 bg-destructive text-destructive-foreground rounded text-sm hover:bg-destructive/90"
           >
@@ -104,15 +103,15 @@ export function ReviewStep({
     );
   };
 
-  const handleEditSave = (updatedRecord: ShipmentRecord) => {
-    onUpdate(
-      records?.map((r) => (r.id === updatedRecord?.id ? updatedRecord : r))
-    );
+  const handleEditSave = () => {
+    onUpdate();
     setEditingRecord(null);
     toast.success("Record updated successfully");
   };
 
   const handleBulkDelete = () => {
+    const count = selectedRows.size;
+    if (count === 0) return;
 
     toast(
       <div className="space-y-2">
@@ -122,13 +121,49 @@ export function ReviewStep({
         </p>
         <div className="flex gap-2">
           <button
-            onClick={() => {
-              onUpdate(records?.filter((r) => !selectedRows.has(r.id)));
-              onSelectRows(new Set());
+            onClick={async () => {
               toast.dismiss();
-              toast.success(`${selectedRows.size} records deleted`);
+
+              const loadingToast = toast.loading(
+                `Deleting ${count} record${count !== 1 ? "s" : ""}...`
+              );
+
+              try {
+                const deletePromises = Array.from(selectedRows).map((id) =>
+                  axios.delete(`/api/shipments/${id}`)
+                );
+
+                const results = await Promise.allSettled(deletePromises);
+
+                const successCount = results.filter(
+                  (r) => r.status === "fulfilled"
+                ).length;
+                const failedCount = results.length - successCount;
+
+                if (failedCount === 0) {
+                  toast.success(
+                    `Successfully deleted ${successCount} record${
+                      successCount !== 1 ? "s" : ""
+                    }`,
+                    { id: loadingToast }
+                  );
+                  onUpdate();
+                  onSelectRows(new Set());
+                } else {
+                  toast.warning(
+                    `${successCount} deleted, ${failedCount} failed`,
+                    { id: loadingToast }
+                  );
+                  onUpdate();
+                }
+              } catch (err) {
+                console.error("Bulk delete error:", err);
+                toast.error("Failed to delete selected records", {
+                  id: loadingToast,
+                });
+              }
             }}
-            className="px-3 py-1 bg-destructive text-destructive-foreground rounded text-sm hover:bg-destructive/90"
+            className="px-4 py-2 text-sm bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors"
           >
             Delete All
           </button>
@@ -143,43 +178,247 @@ export function ReviewStep({
     );
   };
 
+  const handleSort = (columnId: string) => {
+    const isCurrentSort = filter.sortBy === columnId;
+    const newOrder =
+      isCurrentSort && filter.sortDirection === "asc" ? "desc" : "asc";
+
+    setFilter({
+      ...filter,
+      sortBy: columnId,
+      sortDirection: newOrder,
+      page: 1,
+    });
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchInput(value);
+    const timeoutId = setTimeout(() => {
+      setFilter({
+        ...filter,
+        search: value,
+        page: 1,
+      });
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  };
+
+  const handleSelectAllOnPage = (checked: boolean) => {
+    const newSelection = new Set(selectedRows);
+    if (checked) {
+      records?.forEach((r) => newSelection.add(r.id));
+    } else {
+      records?.forEach((r) => newSelection.delete(r.id));
+    }
+    onSelectRows(newSelection);
+  };
+
+  const columns: ColumnDef<ShipmentRecord>[] = [
+    {
+      id: "select",
+      header: () => {
+        const allOnPageSelected =
+          records?.length > 0 && records.every((r) => selectedRows.has(r.id));
+
+        return (
+          <Checkbox
+            checked={allOnPageSelected}
+            onCheckedChange={(checked) => handleSelectAllOnPage(!!checked)}
+            aria-label="Select all on page"
+          />
+        );
+      },
+      cell: ({ row }) => (
+        <Checkbox
+          checked={selectedRows.has(row.original.id)}
+          onCheckedChange={(checked) => {
+            const newSelection = new Set(selectedRows);
+            if (checked) {
+              newSelection.add(row.original.id);
+            } else {
+              newSelection.delete(row.original.id);
+            }
+            onSelectRows(newSelection);
+          }}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "ship_from",
+      header: () => {
+        const isSorted = filter.sortBy === "ship_from__name";
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => handleSort("ship_from__name")}
+            className="h-8 px-2"
+          >
+            Ship From
+            <ArrowUpDown
+              className={`ml-2 h-4 w-4 ${isSorted ? "text-primary" : ""}`}
+            />
+          </Button>
+        );
+      },
+      cell: ({ row }) => {
+        const shipFrom = row.original.ship_from;
+        return (
+          <div>
+            <div className="font-medium">
+              {shipFrom?.first_name} {shipFrom?.last_name}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {shipFrom?.city}, {shipFrom?.state}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "ship_to",
+      header: () => {
+        const isSorted = filter.sortBy === "ship_to__name";
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => handleSort("ship_to__name")}
+            className="h-8 px-2"
+          >
+            Ship To
+            <ArrowUpDown
+              className={`ml-2 h-4 w-4 ${isSorted ? "text-primary" : ""}`}
+            />
+          </Button>
+        );
+      },
+      cell: ({ row }) => {
+        const shipTo = row.original.ship_to;
+        return (
+          <div>
+            <div className="font-medium">
+              {shipTo?.first_name} {shipTo?.last_name}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {shipTo?.address_line1}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "package",
+      header: "Package",
+      cell: ({ row }) => {
+        const pkg = row.original.package;
+        return (
+          <div className="text-sm text-muted-foreground">
+            {pkg?.length_inches}x{pkg?.width_inches}x{pkg?.height_inches}" •{" "}
+            {pkg?.weight_lbs}lb {pkg?.weight_oz}oz
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "order_no",
+      header: () => {
+        const isSorted = filter.sortBy === "order_no";
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => handleSort("order_no")}
+            className="h-8 px-2"
+          >
+            Order #
+            <ArrowUpDown
+              className={`ml-2 h-4 w-4 ${isSorted ? "text-primary" : ""}`}
+            />
+          </Button>
+        );
+      },
+      cell: ({ row }) => (
+        <div className="font-medium">{row.original.order_no}</div>
+      ),
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        return (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setEditingRecord(row.original)}
+              className="h-8 w-8"
+            >
+              <Edit2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleDeleteRecord(row.original.id)}
+              className="h-8 w-8 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const table = useReactTable({
+    data: records,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    manualSorting: true,
+    manualFiltering: true,
+    pageCount: data.total_pages,
+    state: {
+      pagination: {
+        pageIndex: filter.page - 1,
+        pageSize: 10,
+      },
+      sorting: filter.sortBy
+        ? [{ id: filter.sortBy, desc: filter.sortDirection === "desc" }]
+        : [],
+    },
+  });
+
   return (
-    <div>
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
+      <div>
         <div className="flex items-center gap-3 mb-2">
           <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm">
             2
           </div>
-          <h1 className="text-2xl font-bold text-foreground">
-            Review and Edit
-          </h1>
+          <h1 className="text-2xl font-bold">Review and Edit</h1>
         </div>
         <p className="text-muted-foreground">
-          Step 2 of 4 • {records?.length} records loaded • Page {currentPage} of{" "}
-          {totalPages}
+          Step 2 of 4 • {data.count} records loaded • Page {data.current} of{" "}
+          {data.total_pages}
         </p>
       </div>
 
       {/* Search */}
-      <div className="mb-6 flex items-center gap-2 bg-card border border-border rounded-lg px-4 py-2 max-w-md">
-        <Search className="w-4 h-4 text-muted-foreground" />
-        <input
-          type="text"
+      <div className="flex items-center gap-4">
+        <Input
           placeholder="Search by name, address, or order number..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setCurrentPage(1);
-          }}
-          className="flex-1 bg-transparent outline-none text-foreground placeholder-muted-foreground text-sm"
+          value={searchInput}
+          onChange={(e) => handleSearch(e.target.value)}
+          className="max-w-md"
         />
       </div>
 
       {/* Bulk Actions */}
       {selectedRows.size > 0 && (
-        <div className="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-between">
-          <p className="text-sm font-medium text-foreground">
+        <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg flex items-center justify-between">
+          <p className="text-sm font-medium">
             {selectedRows.size} record{selectedRows.size > 1 ? "s" : ""}{" "}
             selected
           </p>
@@ -189,14 +428,14 @@ export function ReviewStep({
               variant="outline"
               onClick={() => setBulkActionType("address")}
             >
-              Change Ship From Address
+              Change Ship From
             </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={() => setBulkActionType("package")}
             >
-              Change Package Details
+              Change Package
             </Button>
             <Button size="sm" variant="destructive" onClick={handleBulkDelete}>
               Delete Selected
@@ -206,139 +445,112 @@ export function ReviewStep({
       )}
 
       {/* Table */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border bg-muted/50">
-                <th className="px-4 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={
-                      selectedRows.size === paginatedRecords?.length &&
-                      paginatedRecords?.length > 0
-                    }
-                    onChange={handleSelectAll}
-                    className="rounded border-border cursor-pointer"
-                  />
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Ship From
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Ship To
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Package
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Order #
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase">
-                  Actions
-                </th>
+      <div className="rounded-md border">
+        <table className="w-full caption-bottom text-sm">
+          <thead className="[&_tr]:border-b">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr
+                key={headerGroup.id}
+                className="border-b transition-colors hover:bg-muted/50"
+              >
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    className="h-12 px-4 text-left align-middle font-medium text-muted-foreground"
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </th>
+                ))}
               </tr>
-            </thead>
-            <tbody>
-              {paginatedRecords?.map((record, idx) => (
-                <tr
-                  key={record?.id}
-                  className={`border-b border-border transition-colors ${
-                    idx % 2 === 1 ? "bg-muted/30" : ""
-                  } ${selectedRows.has(record?.id) ? "bg-primary/10" : ""}`}
+            ))}
+          </thead>
+          <tbody className="[&_tr:last-child]:border-0">
+            {loading ? (
+              <tr className="border-b transition-colors hover:bg-muted/50">
+                <td
+                  colSpan={columns.length}
+                  className="p-4 align-middle h-24 text-center"
                 >
-                  <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.has(record?.id)}
-                      onChange={() => handleSelectRow(record?.id)}
-                      className="rounded border-border cursor-pointer"
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    <div className="font-medium text-foreground">
-                      {record?.ship_from?.first_name} {record?.ship_from?.last_name}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {record?.ship_from?.city}, {record?.ship_from?.state}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    <div className="font-medium text-foreground">
-                      {record?.ship_to?.first_name} {record?.ship_to?.last_name}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {record?.ship_to?.address_line1}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {record?.package?.length_inches}x{record?.package?.width_inches}x
-                    {record?.package?.height_inches}" • {record?.package?.weight_lbs}lb{" "}
-                    {record?.package?.weight_oz}oz
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-foreground">
-                    {record?.order_no}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setEditingRecord(record)}
-                        className="p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors"
-                        title="Edit record"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteRecord(record?.id)}
-                        className="p-1 hover:bg-destructive/20 rounded text-muted-foreground hover:text-destructive transition-colors"
-                        title="Delete record"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+                  Loading...
+                </td>
+              </tr>
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <tr
+                  key={row.id}
+                  className={`border-b transition-colors hover:bg-muted/50 ${
+                    selectedRows.has(row.original.id) ? "bg-primary/5" : ""
+                  }`}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="p-4 align-middle">
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </td>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              ))
+            ) : (
+              <tr className="border-b transition-colors hover:bg-muted/50">
+                <td
+                  colSpan={columns.length}
+                  className="p-4 align-middle h-24 text-center"
+                >
+                  No results.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
 
-      <div className="mt-6 flex items-center justify-between">
+      {/* Pagination */}
+      <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
-          {Math.min(currentPage * ITEMS_PER_PAGE, filteredRecords?.length)} of{" "}
-          {filteredRecords?.length} records
+          Showing {(data.current - 1) * 10 + 1} to{" "}
+          {Math.min(data.current * 10, data.count)} of {data.count} records
         </p>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
+            onClick={() => setFilter({ ...filter, page: filter.page - 1 })}
+            disabled={data.current === 1 || loading}
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="h-4 w-4" />
+            Previous
           </Button>
-          <span className="text-sm font-medium">
-            {currentPage} of {totalPages}
+          <span className="text-sm font-medium px-2">
+            Page {data.current} of {data.total_pages}
           </span>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
+            onClick={() => setFilter({ ...filter, page: filter.page + 1 })}
+            disabled={data.current === data.total_pages || loading}
           >
-            <ChevronRight className="w-4 h-4" />
+            Next
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       {/* Navigation */}
-      <div className="mt-8 flex items-center justify-between">
-        <Button variant="outline" onClick={onBack}>
+      <div className="flex items-center justify-between pt-4 border-t">
+        <Button variant="outline" onClick={onBack} disabled={loading}>
           Back
         </Button>
-        <Button className="bg-primary hover:bg-primary/90" onClick={onContinue}>
+        <Button
+          onClick={onContinue}
+          disabled={loading || records?.length === 0}
+        >
           Continue to Shipping
         </Button>
       </div>
@@ -354,15 +566,13 @@ export function ReviewStep({
 
       {bulkActionType && (
         <BulkActionsModal
+          batchId={batch as string}
           type={bulkActionType}
           selectedCount={selectedRows.size}
           records={records}
           selectedIds={selectedRows}
           onApply={(updates) => {
-            const updated = records?.map((r) =>
-              selectedRows.has(r.id) ? { ...r, ...updates } : r
-            );
-            onUpdate(updated);
+            onUpdate();
             setBulkActionType(null);
             onSelectRows(new Set());
             toast.success(`${selectedRows.size} records updated successfully`);

@@ -3,7 +3,16 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import api from "@/lib/axios";
 
-export async function GET(request: NextRequest) {
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  if (!id) {
+    return NextResponse.json({ error: "Missing shipment id" }, { status: 400 });
+  }
+
   try {
     const session = await getServerSession(authOptions);
 
@@ -14,16 +23,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { searchParams } = new URL(request.url);
+    const data = await request.json();
 
-    const response = await api.get("/core/addresses/", {
-      params: searchParams,
-    });
+    const response = await api.post(
+      `/core/shipments/${id}/upsert-address/`,
+      data
+    );
     const result = response.data;
-
     return NextResponse.json({ success: false, data: result });
   } catch (error: any) {
-    console.error("Fetching Error:", error);
+    console.error("Upsert Error:", error);
 
     const status = error.response?.status || 500;
     const message =
@@ -35,5 +44,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: message }, { status });
   }
 }
-
-

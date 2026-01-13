@@ -1,9 +1,9 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import api from "@/lib/axios";
 
-export async function PATCH(
+export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -19,7 +19,7 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const response = await api.patch(`/core/shipments/${id}/`, body);
+    const response = await api.post(`/core/batches/${id}/bulk-update/`, body);
     const result = response.data;
 
     return NextResponse.json({ success: true, data: result });

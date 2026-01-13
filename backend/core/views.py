@@ -1,7 +1,7 @@
 import csv
 import io
 import logging
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
@@ -33,7 +33,6 @@ class PackageViewSet(viewsets.ModelViewSet):
     queryset = Package.objects.filter(saved=True)
     serializer_class = PackageSerializer
     permission_classes = [IsAuthenticated]
-
 
 
 class BatchViewSet(viewsets.ModelViewSet):
@@ -78,24 +77,85 @@ class BatchViewSet(viewsets.ModelViewSet):
 class ShipmentViewSet(viewsets.ModelViewSet):
     serializer_class = ShipmentSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = ShipmentFilter
-    search_fields = ["order_no", "ship_to__city", "ship_to__state"]
-    ordering_fields = ["created_at", "price"]
+    ordering_fields = [
+        "created_at",
+        "price",
+        "order_no",
+        "ship_to__name",
+        "ship_from__name",
+    ]
+    queryset = Shipment.objects.all()
 
-    def get_queryset(self):
-        queryset = Shipment.objects.all()
-        batch_id = self.request.query_params.get("batch_id")
+
+    # ───────────────────────────────────────────────────────────────
+    #  POST /shipments/<id>/upsert-address/
+    # ───────────────────────────────────────────────────────────────
+    @action(detail=True, methods=["post"], url_path="upsert-address")
+    def upsert_address(self, request, pk=None):
+        """
+        Upsert (update or create) the address for this shipment
+        """
+        shipment = self.get_object()
+        addr_type = request.data.get("type")
         
-        if batch_id:
-            logger.debug(
-                f"User {self.request.user.full_name} fetching shipments for batch {batch_id}"
+        address = shipment.ship_to if addr_type == "to" else shipment.ship_from
+        
+        serializer = AddressSerializer(address, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            new_address = serializer.save()
+
+            if not address or not address.id:
+                if addr_type == "to":
+                    shipment.ship_to = new_address
+                    shipment.save(update_fields=["ship_to"])
+                elif addr_type == "from":
+                    shipment.ship_from = new_address
+                    shipment.save(update_fields=["ship_from"])
+
+            return Response(
+                {
+                    "status": "success",
+                    "message": "Shipping address updated/created",
+                    "address": AddressSerializer(new_address).data,
+                },
+                status=status.HTTP_200_OK,
             )
-            queryset = queryset.filter(batch_id=batch_id)
-        else:
-            logger.debug(f"User {self.request.user.full_name} fetching all shipments")
-            
-        return queryset.filter(batch__user=self.request.user)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # ───────────────────────────────────────────────────────────────
+    #  POST /shipments/<id>/upsert-package/
+    # ───────────────────────────────────────────────────────────────
+    @action(detail=True, methods=["post"], url_path="upsert-package")
+    def upsert_package(self, request, pk=None):
+        """
+        Upsert (update or create) the package details for this shipment
+        """
+        shipment = self.get_object()
+
+        package = shipment.package
+        serializer = PackageSerializer(package, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            new_package = serializer.save()
+
+            if not package:
+                shipment.package = new_package
+                shipment.save(update_fields=["package"])
+
+            return Response(
+                {
+                    "status": "success",
+                    "message": "Package details updated/created",
+                    "package": PackageSerializer(new_package).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class CSVUploadView(GenericAPIView):
@@ -126,9 +186,9 @@ class CSVUploadView(GenericAPIView):
             file_data = file_obj.read().decode("utf-8-sig")
             csv_reader = csv.reader(io.StringIO(file_data))
             rows = list(csv_reader)
-            
+
             logger.debug(f"[CSV_UPLOAD] Total rows in CSV: {len(rows)}")
-            
+
             data_rows = rows[2:]  # skip headers
 
             if not data_rows:
@@ -155,8 +215,10 @@ class CSVUploadView(GenericAPIView):
 
             for idx, row in enumerate(data_rows, start=1):
                 try:
-                    logger.debug(f"[CSV_UPLOAD] Processing row {idx} of batch {batch.id}")
-                    
+                    logger.debug(
+                        f"[CSV_UPLOAD] Processing row {idx} of batch {batch.id}"
+                    )
+
                     # Validate row length
                     if len(row) < 23:
                         issue_msg = f"Row {idx}: Insufficient columns ({len(row)}/23)"
@@ -180,10 +242,10 @@ class CSVUploadView(GenericAPIView):
                             first_name = row[0].strip()
                             last_name = row[1].strip()
                             name = f"{first_name} {last_name}".strip()
-                            
+
                             if not name:
                                 name = "Unknown Sender"
-                                
+
                             ship_from, created_from = Address.objects.get_or_create(
                                 address_line1=row[2].strip(),
                                 city=row[4].strip(),
@@ -195,7 +257,6 @@ class CSVUploadView(GenericAPIView):
                                     "last_name": last_name or "Sender",
                                     "address_line2": row[3].strip(),
                                     "phone": row[19].strip(),
-                                    
                                 },
                             )
                             logger.debug(
@@ -213,10 +274,10 @@ class CSVUploadView(GenericAPIView):
                         first_name = row[7].strip() if len(row) > 7 else row[0].strip()
                         last_name = row[8].strip() if len(row) > 8 else row[1].strip()
                         name = f"{first_name} {last_name}".strip()
-                        
+
                         if not name:
                             name = "Unknown Recipient"
-                            
+
                         ship_to, created_to = Address.objects.get_or_create(
                             address_line1=row[9].strip(),
                             city=row[11].strip(),
@@ -227,8 +288,9 @@ class CSVUploadView(GenericAPIView):
                                 "first_name": first_name or "Unknown",
                                 "last_name": last_name or "Recipient",
                                 "address_line2": row[10].strip(),
-                                "phone": row[20].strip() if len(row) > 20 else row[19].strip(),
-                                
+                                "phone": row[20].strip()
+                                if len(row) > 20
+                                else row[19].strip(),
                             },
                         )
                         logger.debug(
@@ -249,12 +311,12 @@ class CSVUploadView(GenericAPIView):
                     try:
                         weight_lbs = int(row[14]) if row[14].strip().isdigit() else 0
                         weight_oz = int(row[15]) if row[15].strip().isdigit() else 0
-                        
+
                         if row[22].strip():  # SKU provided
                             length = float(row[16]) if row[16].strip() else None
                             width = float(row[17]) if row[17].strip() else None
                             height = float(row[18]) if row[18].strip() else None
-                            
+
                             package, created_pkg = Package.objects.get_or_create(
                                 sku=row[22].strip(),
                                 defaults={
@@ -265,7 +327,6 @@ class CSVUploadView(GenericAPIView):
                                     "weight_lbs": weight_lbs,
                                     "weight_oz": weight_oz,
                                     "saved": False,
-                                    
                                 },
                             )
                             logger.debug(
@@ -277,7 +338,7 @@ class CSVUploadView(GenericAPIView):
                             length = float(row[16]) if row[16].strip() else 0
                             width = float(row[17]) if row[17].strip() else 0
                             height = float(row[18]) if row[18].strip() else 0
-                            
+
                             package = Package.objects.create(
                                 name=f"Package for {row[21].strip() or 'order'}",
                                 length_inches=length,
@@ -322,7 +383,8 @@ class CSVUploadView(GenericAPIView):
                             shipment.status = "incomplete"
                             shipment.save(update_fields=["status"])
                         elif not shipment.package or (
-                            shipment.package.weight_lbs + shipment.package.weight_oz == 0
+                            shipment.package.weight_lbs + shipment.package.weight_oz
+                            == 0
                         ):
                             logger.warning(
                                 f"[CSV_UPLOAD] Row {idx}: Shipment {shipment.id} has invalid package weight"
@@ -331,7 +393,7 @@ class CSVUploadView(GenericAPIView):
                             shipment.save(update_fields=["status"])
 
                         created += 1
-                        
+
                     except Exception as e:
                         logger.error(
                             f"[CSV_UPLOAD] Row {idx}: Error creating shipment: {str(e)}"
@@ -344,7 +406,7 @@ class CSVUploadView(GenericAPIView):
                 except Exception as e:
                     logger.error(
                         f"[CSV_UPLOAD] Row {idx}: Unexpected error: {str(e)}",
-                        exc_info=True
+                        exc_info=True,
                     )
                     issue_msg = f"Row {idx}: Unexpected error - {str(e)}"
                     issue_details.append(issue_msg)
@@ -381,7 +443,7 @@ class CSVUploadView(GenericAPIView):
         except Exception as exc:
             logger.error(
                 f"[CSV_UPLOAD] Critical failure for user {user.full_name}: {str(exc)}",
-                exc_info=True
+                exc_info=True,
             )
             if "batch" in locals():
                 logger.info(f"[CSV_UPLOAD] Rolling back batch {batch.id}")
@@ -420,18 +482,16 @@ class BulkUpdateView(GenericAPIView):
                         f"[BULK_UPDATE] No address_id provided by {request.user.full_name}"
                     )
                     return Response({"error": "No address_id provided"}, status=400)
-                    
-                address = get_object_or_404(
-                    Address, id=address_id, user=request.user
-                )
+
+                address = get_object_or_404(Address, id=address_id)
                 logger.debug(
                     f"[BULK_UPDATE] Changing address to {address.id} for batch {batch_id}"
                 )
-                
+
                 updated_count = Shipment.objects.filter(
                     batch=batch, id__in=shipment_ids
                 ).update(ship_from=address)
-                
+
                 logger.info(
                     f"[BULK_UPDATE] Changed ship_from address for {updated_count} shipments"
                 )
@@ -443,22 +503,20 @@ class BulkUpdateView(GenericAPIView):
                         f"[BULK_UPDATE] No package_id provided by {request.user.full_name}"
                     )
                     return Response({"error": "No package_id provided"}, status=400)
-                    
-                package = get_object_or_404(
-                    Package, id=package_id, user=request.user
-                )
+
+                package = get_object_or_404(Package, id=package_id)
                 logger.debug(
                     f"[BULK_UPDATE] Changing package to {package.id} for batch {batch_id}"
                 )
-                
+
                 updated_count = Shipment.objects.filter(
                     batch=batch, id__in=shipment_ids
                 ).update(package=package)
-                
+
                 logger.info(
                     f"[BULK_UPDATE] Changed package for {updated_count} shipments, recalculating prices"
                 )
-                
+
                 # Recalculate prices
                 shipments = batch.shipments.filter(id__in=shipment_ids)
                 for s in shipments:
@@ -474,25 +532,25 @@ class BulkUpdateView(GenericAPIView):
                         f"[BULK_UPDATE] No service provided by {request.user.full_name}"
                     )
                     return Response({"error": "No service provided"}, status=400)
-                    
+
                 if service not in dict(Shipment.SERVICE_CHOICES):
                     logger.warning(
                         f"[BULK_UPDATE] Invalid service '{service}' by {request.user.full_name}"
                     )
                     return Response({"error": "Invalid service"}, status=400)
-                    
+
                 logger.debug(
                     f"[BULK_UPDATE] Changing service to '{service}' for batch {batch_id}"
                 )
-                
+
                 updated_count = Shipment.objects.filter(
                     batch=batch, id__in=shipment_ids
                 ).update(shipping_service=service)
-                
+
                 logger.info(
                     f"[BULK_UPDATE] Changed service for {updated_count} shipments, recalculating prices"
                 )
-                
+
                 shipments = batch.shipments.filter(id__in=shipment_ids)
                 for s in shipments:
                     s.save(update_fields=["price"])
@@ -519,11 +577,11 @@ class BulkUpdateView(GenericAPIView):
                     "new_total": str(batch.total_price),
                 }
             )
-            
+
         except Exception as e:
             logger.error(
                 f"[BULK_UPDATE] Error during bulk update for batch {batch_id}: {str(e)}",
-                exc_info=True
+                exc_info=True,
             )
             return Response(
                 {"error": "Bulk update failed", "detail": str(e)}, status=500

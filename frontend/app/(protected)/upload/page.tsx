@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UploadStep } from "@/components/steps/upload-step";
 import { ReviewStep } from "@/components/steps/review-step";
 import { ShippingStep } from "@/components/steps/shipping-step";
@@ -10,16 +10,43 @@ import type { ShipmentRecord } from "@/lib/schemas";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Step = "upload" | "review" | "shipping" | "purchase" | "success";
+
+export type ShipmentFilter = {
+  search?: string;
+  page: number;
+  pageSize: number;
+  sortBy?: string; // e.g. "order_no", "ship_to.first_name"
+  sortDirection?: "asc" | "desc";
+  // future: status, date range, etc.
+};
 
 export default function Dashboard() {
   const [currentStep, setCurrentStep] = useState<Step>("upload");
   const [batch, setBatch] = useState<String | undefined>();
-
+  const [filter, setFilter] = useState<ShipmentFilter>({
+    page: 1,
+    pageSize: 10,
+    search: "",
+  });
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [records, setRecords] = useState<ShipmentRecord[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [labelSize, setLabelSize] = useState<"letter" | "4x6">("4x6");
+
+  useEffect(() => {
+    const batchId = searchParams.get("batch");
+    const step = searchParams.get("step");
+    if (batchId && batch !== batchId) {
+      setBatch(batchId);
+    }
+    if (step && step !== currentStep) {
+      setCurrentStep(step as Step);
+    }
+  }, [searchParams]);
 
   const savedAddresses = useQuery({
     queryKey: ["addresses"],
@@ -37,18 +64,34 @@ export default function Dashboard() {
         .then((res) => res?.data),
   });
 
-  const { data: { data: shipments = [] } = {} } = useQuery({
-    queryKey: ["shipments", `${batch}`],
-    queryFn: async () =>
-      await axios
-        .get("/api/shipments", { params: { batch: batch } })
-        .then((res) => res?.data),
-    // enabled: !!batch,
+  const {
+    data: { data: shipments = [] } = {},
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ["shipments", batch, filter],
+    queryFn: async () => {
+      const params = {
+        batch,
+        page: filter.page,
+        page_size: filter.pageSize,
+        search: filter.search || undefined,
+        ordering: filter.sortBy
+          ? `${filter.sortDirection === "desc" ? "-" : ""}${filter.sortBy}`
+          : undefined,
+      };
+
+      const res = await axios.get("/api/shipments", { params });
+      return res.data;
+    },
+    enabled: !!batch,
   });
 
   const handleUpload = (batch: String) => {
-    setBatch(batch);
-    setCurrentStep("review");
+    const params = new URLSearchParams(searchParams);
+    params.set("batch", `${batch}`);
+    params.set("step", `review`);
+    router.push(`/upload?${params.toString()}`);
   };
 
   const handleNavigateBack = (targetStep: Step) => {
@@ -63,9 +106,10 @@ export default function Dashboard() {
             <button
               onClick={() => {
                 setCurrentStep(targetStep);
-                // delete batch
-                setRecords([]);
+                setBatch(undefined);
+                refetch();
                 setSelectedRows(new Set());
+                setFilter({ page: 1, pageSize: 10, search: "" });
                 toast.dismiss();
               }}
               className="px-3 py-1 bg-destructive text-destructive-foreground rounded text-sm hover:bg-destructive/90"
@@ -92,23 +136,27 @@ export default function Dashboard() {
 
   const handleReset = () => {
     setCurrentStep("upload");
-    setRecords([]);
+    refetch();
     setSelectedRows(new Set());
+    setFilter({ page: 1, pageSize: 10, search: "" });
   };
-  console.log(shipments);
+
   return (
     <>
       {currentStep === "upload" && <UploadStep onUpload={handleUpload} />}
       {currentStep === "review" && (
         <ReviewStep
           records={shipments?.results}
-          onUpdate={handleUpdateRecords}
+          data={shipments}
+          batch={batch}
+          filter={filter}
+          setFilter={setFilter}
+          onUpdate={refetch}
+          loading={isLoading}
           onContinue={() => setCurrentStep("shipping")}
           onBack={() => handleNavigateBack("upload")}
           selectedRows={selectedRows}
           onSelectRows={setSelectedRows}
-          savedAddresses={savedAddresses}
-          savedPackages={savedPackages}
         />
       )}
       {currentStep === "shipping" && (
