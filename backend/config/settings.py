@@ -40,11 +40,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_filters",
     "rest_framework",
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "accounts",
+    "core",
 ]
 
 MIDDLEWARE = [
@@ -57,7 +59,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "core.urls"
+ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
@@ -74,7 +76,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "core.wsgi.application"
+WSGI_APPLICATION = "config.wsgi.application"
 
 # Custom User Model
 AUTH_USER_MODEL = "accounts.CustomUser"
@@ -141,6 +143,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend',
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -169,31 +176,25 @@ SIMPLE_JWT = {
 }
 
 
-
 SPECTACULAR_SETTINGS = {
-    'TITLE': "Label Creation API",
-    'DESCRIPTION':"Label maker",
-
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-
-    'LICENSE': {
-        'name': 'Proprietary',
+    "TITLE": "Label Creation API",
+    "DESCRIPTION": "Label maker",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "LICENSE": {
+        "name": "Proprietary",
     },
-
     # Security definition for JWT
-    'SECURITY': [
+    "SECURITY": [
         {
-            'type': 'http',
-            'scheme': 'bearer',
-            'bearerFormat': 'JWT',
-            'description': 'JWT token obtained from /api/token/',
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "JWT token obtained from /api/token/",
         }
     ],
-
     # Clean operation IDs and sorting
-    'COMPONENT_SPLIT_REQUEST': True,
-    'SORT_OPERATIONS': True,
-    'ENABLE_LIST_RESPONSE_STATUS_CODE': True,
-
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SORT_OPERATIONS": True,
+    "ENABLE_LIST_RESPONSE_STATUS_CODE": True,
 }

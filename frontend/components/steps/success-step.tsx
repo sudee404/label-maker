@@ -31,25 +31,8 @@ export function SuccessStep({ records, labelSize, onReset }: SuccessStepProps) {
     }, 1500);
   };
 
-  const handlePrint = () => {
-    toast(
-      <div className="space-y-2">
-        <p className="font-medium">Opening print dialog...</p>
-        <p className="text-sm text-muted-foreground">
-          Prepare your printer and select the correct label size (
-          {labelSize === "letter" ? "8.5×11 inches" : "4×6 inches"})
-        </p>
-      </div>
-    );
-
-    setTimeout(() => {
-      window.print();
-      toast.success("Print dialog opened");
-    }, 1000);
-  };
 
   const handleReset = () => {
-    toast.success("Ready to create a new batch!");
     onReset();
   };
 
@@ -102,15 +85,6 @@ export function SuccessStep({ records, labelSize, onReset }: SuccessStepProps) {
           <Button size="lg" className="gap-2" onClick={handleDownload}>
             <Download className="w-4 h-4" />
             Download Labels
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="gap-2 bg-transparent"
-            onClick={handlePrint}
-          >
-            <Printer className="w-4 h-4" />
-            Print Labels
           </Button>
         </div>
 

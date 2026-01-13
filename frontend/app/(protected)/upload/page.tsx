@@ -46,7 +46,6 @@ export default function Dashboard() {
   const handleUpload = (records: ShipmentRecord[]) => {
     setRecords(records);
     setCurrentStep("review");
-    toast.success("Upload complete! Ready to review records.");
   };
 
   const handleNavigateBack = (targetStep: Step) => {
@@ -91,7 +90,6 @@ export default function Dashboard() {
     setCurrentStep("upload");
     setRecords([]);
     setSelectedRows(new Set());
-    toast.success("Ready to upload a new batch!");
   };
 
   return (
