@@ -75,8 +75,6 @@ export function ReviewStep({
   };
 
   const handleDeleteRecord = (id: string) => {
-    const toastId = toast("Sonner");
-
     toast(
       <div className="space-y-2">
         <p className="font-medium">Delete this record?</p>
@@ -88,7 +86,7 @@ export function ReviewStep({
             onClick={() => {
               onUpdate(records.filter((r) => r.id !== id));
               selectedRows.delete(id);
-              toast.dismiss(toastId);
+              toast.dismiss();
               toast.success("Record deleted successfully");
             }}
             className="px-3 py-1 bg-destructive text-destructive-foreground rounded text-sm hover:bg-destructive/90"
@@ -96,7 +94,7 @@ export function ReviewStep({
             Delete
           </button>
           <button
-            onClick={() => toast.dismiss(toastId)}
+            onClick={() => toast.dismiss()}
             className="px-3 py-1 bg-muted text-muted-foreground rounded text-sm hover:bg-muted/80"
           >
             Cancel
@@ -115,7 +113,6 @@ export function ReviewStep({
   };
 
   const handleBulkDelete = () => {
-    const toastId = toast("Sonner");
 
     toast(
       <div className="space-y-2">
@@ -128,7 +125,7 @@ export function ReviewStep({
             onClick={() => {
               onUpdate(records.filter((r) => !selectedRows.has(r.id)));
               onSelectRows(new Set());
-              toast.dismiss(toastId);
+              toast.dismiss();
               toast.success(`${selectedRows.size} records deleted`);
             }}
             className="px-3 py-1 bg-destructive text-destructive-foreground rounded text-sm hover:bg-destructive/90"
@@ -136,7 +133,7 @@ export function ReviewStep({
             Delete All
           </button>
           <button
-            onClick={() => toast.dismiss(toastId)}
+            onClick={() => toast.dismiss()}
             className="px-3 py-1 bg-muted text-muted-foreground rounded text-sm hover:bg-muted/80"
           >
             Cancel

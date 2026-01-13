@@ -51,7 +51,7 @@ export default function Dashboard() {
 
   const handleNavigateBack = (targetStep: Step) => {
     if (currentStep === "review" && targetStep === "upload") {
-      toast((t) => (
+      toast(
         <div className="space-y-3">
           <p className="font-medium">Going back will lose your current data</p>
           <p className="text-sm text-muted-foreground">
@@ -63,21 +63,21 @@ export default function Dashboard() {
                 setCurrentStep(targetStep);
                 setRecords([]);
                 setSelectedRows(new Set());
-                toast.dismiss(t);
+                toast.dismiss();
               }}
               className="px-3 py-1 bg-destructive text-destructive-foreground rounded text-sm hover:bg-destructive/90"
             >
               Continue
             </button>
             <button
-              onClick={() => toast.dismiss(t)}
+              onClick={() => toast.dismiss()}
               className="px-3 py-1 bg-muted text-muted-foreground rounded text-sm hover:bg-muted/80"
             >
               Cancel
             </button>
           </div>
         </div>
-      ));
+      );
     } else {
       setCurrentStep(targetStep);
     }

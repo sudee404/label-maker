@@ -1,22 +1,22 @@
-"use client"
+"use client";
 
-import { CheckCircle2, Download, Printer } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
+import { CheckCircle2, Download, Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface ShipmentRecord {
-  id: string
+  id: string;
 }
 
 interface SuccessStepProps {
-  records: ShipmentRecord[]
-  labelSize: "letter" | "4x6"
-  onReset: () => void
+  records: ShipmentRecord[];
+  labelSize: "letter" | "4x6";
+  onReset: () => void;
 }
 
 export function SuccessStep({ records, labelSize, onReset }: SuccessStepProps) {
   const handleDownload = () => {
-    toast((t) => (
+    toast(
       <div className="space-y-2">
         <p className="font-medium">Downloading labels...</p>
         <p className="text-sm text-muted-foreground">
@@ -24,15 +24,15 @@ export function SuccessStep({ records, labelSize, onReset }: SuccessStepProps) {
           {labelSize === "letter" ? "Letter" : "4x6"}) are being prepared
         </p>
       </div>
-    ))
+    );
 
     setTimeout(() => {
-      toast.success(`Downloaded ${records.length} shipping label(s) as PDF`)
-    }, 1500)
-  }
+      toast.success(`Downloaded ${records.length} shipping label(s) as PDF`);
+    }, 1500);
+  };
 
   const handlePrint = () => {
-    toast((t) => (
+    toast(
       <div className="space-y-2">
         <p className="font-medium">Opening print dialog...</p>
         <p className="text-sm text-muted-foreground">
@@ -40,18 +40,18 @@ export function SuccessStep({ records, labelSize, onReset }: SuccessStepProps) {
           {labelSize === "letter" ? "8.5×11 inches" : "4×6 inches"})
         </p>
       </div>
-    ))
+    );
 
     setTimeout(() => {
-      window.print()
-      toast.success("Print dialog opened")
-    }, 1000)
-  }
+      window.print();
+      toast.success("Print dialog opened");
+    }, 1000);
+  };
 
   const handleReset = () => {
-    toast.success("Ready to create a new batch!")
-    onReset()
-  }
+    toast.success("Ready to create a new batch!");
+    onReset();
+  };
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
@@ -62,8 +62,12 @@ export function SuccessStep({ records, labelSize, onReset }: SuccessStepProps) {
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold text-foreground mb-2">Order Complete!</h1>
-        <p className="text-lg text-muted-foreground mb-8">Your shipping labels have been created successfully.</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">
+          Order Complete!
+        </h1>
+        <p className="text-lg text-muted-foreground mb-8">
+          Your shipping labels have been created successfully.
+        </p>
 
         {/* Summary */}
         <div className="bg-card border border-border rounded-lg p-8 mb-8 text-left">
@@ -71,8 +75,12 @@ export function SuccessStep({ records, labelSize, onReset }: SuccessStepProps) {
 
           <div className="space-y-4">
             <div className="flex justify-between items-center py-3 border-b border-border">
-              <span className="text-muted-foreground">Total Labels Created</span>
-              <span className="font-bold text-lg text-foreground">{records.length}</span>
+              <span className="text-muted-foreground">
+                Total Labels Created
+              </span>
+              <span className="font-bold text-lg text-foreground">
+                {records.length}
+              </span>
             </div>
             <div className="flex justify-between items-center py-3 border-b border-border">
               <span className="text-muted-foreground">Label Format</span>
@@ -95,7 +103,12 @@ export function SuccessStep({ records, labelSize, onReset }: SuccessStepProps) {
             <Download className="w-4 h-4" />
             Download Labels
           </Button>
-          <Button size="lg" variant="outline" className="gap-2 bg-transparent" onClick={handlePrint}>
+          <Button
+            size="lg"
+            variant="outline"
+            className="gap-2 bg-transparent"
+            onClick={handlePrint}
+          >
             <Printer className="w-4 h-4" />
             Print Labels
           </Button>
@@ -124,10 +137,14 @@ export function SuccessStep({ records, labelSize, onReset }: SuccessStepProps) {
           </ol>
         </div>
 
-        <Button className="bg-primary hover:bg-primary/90" size="lg" onClick={handleReset}>
+        <Button
+          className="bg-primary hover:bg-primary/90"
+          size="lg"
+          onClick={handleReset}
+        >
           Create New Batch
         </Button>
       </div>
     </div>
-  )
+  );
 }

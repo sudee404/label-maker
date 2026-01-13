@@ -136,8 +136,6 @@ export function ShippingStep({
   };
 
   const handleDeleteRecord = (id: string) => {
-    const toastId = toast("Sonner");
-
     toast(
       <div className="space-y-2 min-w-[320px]">
         <p className="font-medium">Delete this shipment?</p>
@@ -149,7 +147,7 @@ export function ShippingStep({
             onClick={() => {
               onUpdate(records.filter((r) => r.id !== id));
               selectedRows.delete(id);
-              toast.dismiss(toastId);
+              toast.dismiss();
               toast.success("Shipment deleted successfully");
             }}
             className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md text-sm font-medium hover:bg-destructive/90"
@@ -157,16 +155,14 @@ export function ShippingStep({
             Delete
           </button>
           <button
-            onClick={() => toast.dismiss(toastId)}
+            onClick={() => toast.dismiss()}
             className="px-3 py-1.5 bg-muted text-muted-foreground rounded-md text-sm font-medium hover:bg-muted/80"
           >
             Cancel
           </button>
         </div>
       </div>,
-      {
-        id: toastId,
-      }
+
     );
   };
 

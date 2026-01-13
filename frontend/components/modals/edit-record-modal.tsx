@@ -155,7 +155,7 @@ export function EditRecordModal({ record, onSave, onClose }: EditRecordModalProp
         firstName: data.shipFromFirstName,
         lastName: data.shipFromLastName,
         address: data.shipFromAddress,
-        address2: data.shipFromAddress2,
+        address2: data.shipFromAddress2 ?? "",
         city: data.shipFromCity,
         state: data.shipFromState,
         zip: data.shipFromZip,
@@ -165,7 +165,7 @@ export function EditRecordModal({ record, onSave, onClose }: EditRecordModalProp
         firstName: data.shipToFirstName,
         lastName: data.shipToLastName,
         address: data.shipToAddress,
-        address2: data.shipToAddress2,
+        address2: data.shipToAddress2 ?? "",
         city: data.shipToCity,
         state: data.shipToState,
         zip: data.shipToZip,
@@ -177,7 +177,7 @@ export function EditRecordModal({ record, onSave, onClose }: EditRecordModalProp
         height: data.height,
         lbs: data.lbs,
         oz: data.oz,
-        sku: data.sku,
+        sku: data.sku ?? "",
       },
     }
     onSave(updated)
