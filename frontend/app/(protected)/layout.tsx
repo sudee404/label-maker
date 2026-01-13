@@ -1,24 +1,30 @@
-import type React from "react"
-import { redirect } from "next/navigation"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
-import { AppSidebar } from "@/components/app-sidebar"
+import type React from "react";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Sidebar } from "@/components/sidebar";
+import { Header } from "@/components/header";
 
 export default async function ProtectedLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions as any)
+  const session = await getServerSession(authOptions as any);
 
   if (!session) {
-    redirect("/login")
+    redirect("/login");
   }
 
   return (
-    <div className="flex h-screen">
-          <AppSidebar />
-          <main className="flex-1 overflow-auto p-8 md:p-12">{children}</main>
-        </div>
-  )
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header/>
+        {children}
+      </div>
+    </div>
+  );
 }

@@ -11,7 +11,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Bulk Shipping Platform",
+  title: "ShipHub Platform",
   description: "Unified logistics platform for efficient shipment management",
   generator: "v0.app",
   icons: {

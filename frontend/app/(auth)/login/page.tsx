@@ -15,7 +15,7 @@ export default async function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary-dark to-primary">
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Unified Logistics</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">ShipHub</h1>
           <p className="text-slate-400">Unified logistics management platform</p>
         </div>
 
