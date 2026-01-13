@@ -5,17 +5,6 @@ from django.db import migrations
 
 def create_sample_addresses(apps, schema_editor):
     Address = apps.get_model("core", "Address")
-    User = apps.get_model("accounts", "CustomUser")  # or your custom user model
-
-    user, _ = User.objects.get_or_create(
-        email="demo@example.com",
-        defaults={
-            "first_name": "John",
-            "last_name": "Doe",
-            "is_staff": True,
-            "password": "password",
-        },
-    )
 
     samples = [
         {
@@ -43,12 +32,12 @@ def create_sample_addresses(apps, schema_editor):
 
     for data in samples:
         Address.objects.get_or_create(
-            user=user,
             name=data["name"],
             address_line1=data["address_line1"],
             city=data["city"],
             state=data["state"],
             zip_code=data["zip_code"],
+            saved=True,
             defaults={
                 "first_name": "Print",
                 "last_name": "TTS",
@@ -60,9 +49,6 @@ def create_sample_addresses(apps, schema_editor):
 
 def create_sample_packages(apps, schema_editor):
     Package = apps.get_model("core", "Package")
-    User = apps.get_model("accounts", "CustomUser")
-
-    user = User.objects.get(email="demo@example.com")
 
     samples = [
         {
@@ -93,7 +79,6 @@ def create_sample_packages(apps, schema_editor):
 
     for data in samples:
         Package.objects.get_or_create(
-            user=user,
             name=data["name"],
             defaults={
                 "length_inches": data["length_inches"],
@@ -102,6 +87,7 @@ def create_sample_packages(apps, schema_editor):
                 "weight_lbs": data["weight_lbs"],
                 "weight_oz": data["weight_oz"],
                 "sku": "",
+                "saved":True
             },
         )
 

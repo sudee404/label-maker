@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
 
-    const response = await api.get("/core/shipments/", {
+    const response = await api.get("/core/packages/", {
       params: searchParams,
     });
     const result = response.data;

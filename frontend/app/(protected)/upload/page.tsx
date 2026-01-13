@@ -8,6 +8,8 @@ import { PurchaseStep } from "@/components/steps/purchase-step";
 import { SuccessStep } from "@/components/steps/success-step";
 import type { ShipmentRecord } from "@/lib/schemas";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 
 type Step = "upload" | "review" | "shipping" | "purchase" | "success";
 
@@ -30,6 +32,12 @@ export default function Dashboard() {
       phone: "555-123-4567",
     },
   });
+
+  // const addresses = useQuery({
+  //   queryKey: ["addresses"],
+  //   queryFn: async () =>
+  //     await axios.get("/api/addresses").then((res) => res?.data),
+  // });
   const [savedPackages, setSavedPackages] = useState<
     Record<string, ShipmentRecord["package"]>
   >({

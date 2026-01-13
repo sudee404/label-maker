@@ -1,74 +1,56 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import api from "@/lib/axios";
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData()
-    const file = formData.get("file") as File
+    const session = await getServerSession(authOptions);
 
-    if (!file) {
-      return NextResponse.json({ success: false, error: "No file provided" }, { status: 400 })
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Not authenticated" },
+        { status: 401 }
+      );
     }
 
-    const text = await file.text()
-    const lines = text.trim().split("\n")
+    const formData = await request.formData();
+    const file = formData.get("file");
 
-    // Skip header rows (2 rows)
-    const dataLines = lines.slice(2)
-    const records = []
-
-    for (const line of dataLines) {
-      if (!line.trim()) continue
-
-      const values = line.split(",").map((v) => v.trim())
-
-      if (values.length < 23) continue
-
-      // Parse CSV according to template structure
-      const record = {
-        id: `record-${Date.now()}-${Math.random()}`,
-        shipFrom: {
-          firstName: values[0] || "Print",
-          lastName: values[1] || "TTS",
-          address: values[2] || "502 W Arrow Hwy",
-          address2: values[3] || "",
-          city: values[4] || "San Dimas",
-          zip: values[5] || "91773",
-          state: values[6] || "CA",
-          phone: values[19] || "",
-        },
-        shipTo: {
-          firstName: values[7] || "",
-          lastName: values[8] || "",
-          address: values[9] || "",
-          address2: values[10] || "",
-          city: values[11] || "",
-          zip: values[12] || "",
-          state: values[13] || "",
-          phone: values[20] || "",
-        },
-        package: {
-          lbs: Number.parseInt(values[14]) || 0,
-          oz: Number.parseInt(values[15]) || 0,
-          length: Number.parseInt(values[16]) || 0,
-          width: Number.parseInt(values[17]) || 0,
-          height: Number.parseInt(values[18]) || 0,
-          sku: values[22] || "",
-        },
-        orderNo: values[21] || "",
-        shippingService: "ground",
-        shippingPrice: 5.99,
-      }
-
-      records.push(record)
+    if (!file || !(file instanceof Blob)) {
+      return NextResponse.json(
+        { success: false, error: "No valid CSV file provided" },
+        { status: 400 }
+      );
     }
+
+    const djangoFormData = new FormData();
+    djangoFormData.append("file", file);
+
+    const response = await api.post("/core/upload/", djangoFormData);
+    const result = response.data;
 
     return NextResponse.json({
       success: true,
-      data: records,
-      count: records.length,
-    })
-  } catch (error) {
-    console.error("CSV parse error:", error)
-    return NextResponse.json({ success: false, error: "Failed to parse CSV file" }, { status: 500 })
+      batch_id: result.batch_id,
+      total_records: result.total_records ?? result.record_count ?? 0,
+      issues: result.issues ?? 0,
+      preview: result.preview ?? [],
+      message: "Upload successful",
+    });
+  } catch (error: any) {
+    console.error("[Upload CSV Proxy] Error:", error);
+
+    const status = error.response?.status || 500;
+    const message =
+      error.response?.data?.error ||
+      error.response?.data?.detail ||
+      error.message ||
+      "Internal server error during upload";
+
+    return NextResponse.json(
+      { success: false, error: message },
+      { status }
+    );
   }
 }

@@ -53,19 +53,20 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, user }) {
-
+      // Initial sign-in
       if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
-        token.accessToken = user.accessToken;
-        token.refreshToken = user.refreshToken;
-
-        token.accessTokenExpires = Date.now() + 5 * 60 * 1000;
-        return token;
+        return {
+          ...token,
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          accessToken: user.accessToken,
+          refreshToken: user.refreshToken,
+          accessTokenExpires: Date.now() + 1 * 60 * 1000,
+        };
       }
 
-      // Subsequent calls: check if access token expired
+      // Token refresh
       if (Date.now() < (token.accessTokenExpires as number)) {
         return token;
       }
@@ -86,14 +87,11 @@ export const authOptions: NextAuthOptions = {
         return {
           ...token,
           accessToken: refreshed.access,
-          refreshToken: refreshed.refresh || token.refreshToken,
-          accessTokenExpires: Date.now() + 5 * 60 * 1000,
+          refreshToken: refreshed.refresh ?? token.refreshToken,
+          accessTokenExpires: Date.now() + 1 * 60 * 1000,
         };
       } catch (error: any) {
-        console.error(
-          "[JWT] Refresh token failed:",
-          error?.response?.data || error
-        );
+        console.error("[JWT] Refresh failed:", error?.response?.data || error);
         return { ...token, error: "RefreshTokenError" };
       }
     },

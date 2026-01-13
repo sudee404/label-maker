@@ -15,12 +15,14 @@ class BatchFilter(filters.FilterSet):
 
 
 class ShipmentFilter(filters.FilterSet):
+    batch = filters.CharFilter(field_name='batch_id', lookup_expr='exact')
     status = filters.ChoiceFilter(choices=Shipment.STATUS_CHOICES)
     service = filters.ChoiceFilter(field_name='shipping_service', choices=Shipment.SERVICE_CHOICES)
     order_no = filters.CharFilter(lookup_expr='icontains')
     min_weight = filters.NumberFilter(field_name='weight_lbs', lookup_expr='gte')
-    to_city = filters.CharFilter(field_name='to_city', lookup_expr='icontains')
-    to_state = filters.CharFilter(field_name='to_state', lookup_expr='exact')
+    to_city = filters.CharFilter(field_name='ship_to__city', lookup_expr='icontains')
+    to_state = filters.CharFilter(field_name='ship_to__state', lookup_expr='exact')
+    to_zip_code = filters.CharFilter(field_name='ship_to__zip_code', lookup_expr='exact')
 
     class Meta:
         model = Shipment

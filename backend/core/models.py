@@ -10,9 +10,6 @@ User = get_user_model()
 class Address(BaseModel):
     """Model definition for Address."""
 
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="addresses"
-    )
     name = models.CharField(max_length=100)
     first_name = models.CharField(max_length=50, blank=True)
     last_name = models.CharField(max_length=50, blank=True)
@@ -22,13 +19,14 @@ class Address(BaseModel):
     state = models.CharField(max_length=2)
     zip_code = models.CharField(max_length=10)
     phone = models.CharField(max_length=20, blank=True)
+    saved = models.BooleanField(default=False)
 
     class Meta:
         """Meta definition for Address."""
 
-        verbose_name = 'Saved Address'
-        verbose_name_plural = 'Saved Addresss'
-        ordering = ['name']
+        verbose_name = "Saved Address"
+        verbose_name_plural = "Saved Addresss"
+        ordering = ["name"]
 
     def __str__(self):
         """Unicode representation of Address."""
@@ -38,9 +36,6 @@ class Address(BaseModel):
 class Package(BaseModel):
     """Model definition for Package."""
 
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="packages"
-    )
     name = models.CharField(max_length=100)
     length_inches = models.DecimalField(
         max_digits=5, decimal_places=2, null=True, blank=True
@@ -54,13 +49,14 @@ class Package(BaseModel):
     weight_lbs = models.IntegerField(default=0)
     weight_oz = models.IntegerField(default=0)
     sku = models.CharField(max_length=50, blank=True)
+    saved = models.BooleanField(default=False)
 
     class Meta:
         """Meta definition for Package."""
 
-        verbose_name = 'Package'
-        verbose_name_plural = 'Packages'
-        ordering = ['name']
+        verbose_name = "Package"
+        verbose_name_plural = "Packages"
+        ordering = ["name"]
 
     def __str__(self):
         """Unicode representation of Package."""
@@ -87,9 +83,9 @@ class Batch(BaseModel):
     class Meta:
         """Meta definition for Batch."""
 
-        verbose_name = 'Batch'
-        verbose_name_plural = 'Batchs'
-        ordering = ['-created_at']
+        verbose_name = "Batch"
+        verbose_name_plural = "Batchs"
+        ordering = ["-created_at"]
 
     def __str__(self):
         """Unicode representation of Batch."""
@@ -114,63 +110,45 @@ class Shipment(BaseModel):
         ("incomplete", "Incomplete"),
         ("error", "Error"),
     ]
-
+    order_no = models.CharField(max_length=50, blank=True)
     batch = models.ForeignKey(Batch, on_delete=models.CASCADE, related_name="shipments")
     # Ship From
-    from_first_name = models.CharField(max_length=50, blank=True)
-    from_last_name = models.CharField(max_length=50, blank=True)
-    from_address_line1 = models.CharField(max_length=255, blank=True)
-    from_address_line2 = models.CharField(max_length=255, blank=True)
-    from_city = models.CharField(max_length=100, blank=True)
-    from_zip_code = models.CharField(max_length=10, blank=True)
-    from_state = models.CharField(max_length=2, blank=True)
-
+    ship_from = models.ForeignKey(
+        Address,
+        related_name="ship_from_addresses",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
     # Ship To
-    to_first_name = models.CharField(max_length=50)
-    to_last_name = models.CharField(max_length=50, blank=True)
-    to_address_line1 = models.CharField(max_length=255)
-    to_address_line2 = models.CharField(max_length=255, blank=True)
-    to_city = models.CharField(max_length=100)
-    to_zip_code = models.CharField(max_length=10)
-    to_state = models.CharField(max_length=2)
-
+    ship_to = models.ForeignKey(
+        Address,
+        related_name="ship_to_addresses",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
     # Package
-    weight_lbs = models.IntegerField(default=0)
-    weight_oz = models.IntegerField(default=0)
-    length_inches = models.DecimalField(
-        max_digits=5, decimal_places=2, null=True, blank=True
+    package = models.ForeignKey(
+        Package,
+        related_name="shipments",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
     )
-    width_inches = models.DecimalField(
-        max_digits=5, decimal_places=2, null=True, blank=True
-    )
-    height_inches = models.DecimalField(
-        max_digits=5, decimal_places=2, null=True, blank=True
-    )
-
-    # Other
-    phone_num1 = models.CharField(max_length=20, blank=True)
-    phone_num2 = models.CharField(max_length=20, blank=True)
-    order_no = models.CharField(max_length=50, blank=True)
-    item_sku = models.CharField(max_length=50, blank=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="valid")
     shipping_service = models.CharField(
         max_length=20, choices=SERVICE_CHOICES, null=True, blank=True
     )
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    address = models.ForeignKey(
-        Address, null=True, blank=True, on_delete=models.SET_NULL
-    )
-    package = models.ForeignKey(
-        Package, null=True, blank=True, on_delete=models.SET_NULL
-    )
 
     class Meta:
         """Meta definition for Shipment."""
 
-        verbose_name = 'Shipment'
-        verbose_name_plural = 'Shipments'
-        ordering = ['-created_at']
+        verbose_name = "Shipment"
+        verbose_name_plural = "Shipments"
+        ordering = ["-created_at"]
 
     def __str__(self):
         """Unicode representation of Shipment."""

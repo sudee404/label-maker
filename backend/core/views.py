@@ -1,13 +1,15 @@
 import csv
 import io
 import logging
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.generics import GenericAPIView
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models import Batch, Shipment, Address, Package
 from .serializers import (
@@ -17,8 +19,6 @@ from .serializers import (
     PackageSerializer,
 )
 from .filters import BatchFilter, ShipmentFilter
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.filters import SearchFilter, OrderingFilter
 
 logger = logging.getLogger(__name__)
 
@@ -28,17 +28,11 @@ class AddressViewSet(viewsets.ModelViewSet):
     serializer_class = AddressSerializer
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
-
 
 class PackageViewSet(viewsets.ModelViewSet):
     queryset = Package.objects.all()
     serializer_class = PackageSerializer
     permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        return self.queryset.filter(user=self.request.user)
 
 
 class BatchViewSet(viewsets.ModelViewSet):
@@ -57,22 +51,18 @@ class BatchViewSet(viewsets.ModelViewSet):
     def purchase(self, request, pk=None):
         batch = self.get_object()
         logger.info(
-            f"User {request.user.username} is purchasing batch {batch.id} "
-            f"(total: ${batch.total_price})"
+            f"User {request.user.username} purchasing batch {batch.id} (total: ${batch.total_price})"
         )
 
         if batch.status == "purchased":
-            return Response(
-                {"detail": "Batch already purchased"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"detail": "Batch already purchased"}, status=400)
 
         batch.status = "purchased"
         batch.label_format = request.data.get("label_format")
         batch.save(update_fields=["status", "label_format", "updated_at"])
 
         logger.info(
-            f"Batch {batch.id} successfully purchased by {request.user.username}"
+            f"Batch {batch.id} purchased successfully by {request.user.username}"
         )
         return Response(BatchSerializer(batch).data)
 
@@ -82,8 +72,8 @@ class ShipmentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ShipmentFilter
-    search_fields = ["order_no", "to_first_name", "to_last_name", "to_city"]
-    ordering_fields = ["created_at", "weight_lbs", "price"]
+    search_fields = ["order_no", "ship_to__city", "ship_to__state"]
+    ordering_fields = ["created_at", "price"]
 
     def get_queryset(self):
         queryset = Shipment.objects.all()
@@ -96,44 +86,36 @@ class ShipmentViewSet(viewsets.ModelViewSet):
 class CSVUploadView(GenericAPIView):
     parser_classes = (MultiPartParser, FormParser)
     permission_classes = [IsAuthenticated]
-    serializer_class = None
 
     def post(self, request):
         user = request.user
         file_obj = request.FILES.get("file")
 
         if not file_obj:
-            logger.warning(
-                f"No file provided in upload request by user {user.username}"
-            )
+            logger.warning(f"No file provided by {user.username}")
             return Response({"error": "No file provided"}, status=400)
 
         if not file_obj.name.lower().endswith(".csv"):
-            logger.warning(
-                f"Invalid file type uploaded by {user.username}: {file_obj.name}"
-            )
-            return Response({"error": "Only .csv files are allowed"}, status=400)
+            logger.warning(f"Invalid file type by {user.username}: {file_obj.name}")
+            return Response({"error": "Only .csv files allowed"}, status=400)
 
         try:
-            file_data = file_obj.read().decode("utf-8-sig")  # handles BOM if present
+            file_data = file_obj.read().decode("utf-8-sig")
             csv_reader = csv.reader(io.StringIO(file_data))
             rows = list(csv_reader)
+            data_rows = rows[2:]  # skip headers
 
-            # Skip the two header rows
-            data_rows = rows[2:]
+            if not data_rows:
+                return Response({"error": "CSV is empty"}, status=400)
 
-            if len(data_rows) == 0:
-                return Response({"error": "CSV file is empty"}, status=400)
-
-            if len(data_rows) > 500:  # reasonable limit for assessment
-                return Response({"error": "Too many rows (max 500)"}, status=400)
+            if len(data_rows) > 500:
+                return Response({"error": "Max 500 rows allowed"}, status=400)
 
             batch = Batch.objects.create(
-                user=user, name=f"Upload - {file_obj.name} - {file_obj.size} bytes"
+                user=user, name=f"Upload - {file_obj.name} ({len(data_rows)} items)"
             )
             logger.info(
-                f"User {user.username} created new batch {batch.id} "
-                f"({len(data_rows)} potential records)"
+                f"{user.username} created batch {batch.id} with {len(data_rows)} rows"
             )
 
             created = 0
@@ -143,42 +125,61 @@ class CSVUploadView(GenericAPIView):
                 if len(row) < 23 or not row[9].strip():  # to_address_line1 required
                     issues += 1
                     continue
+                print(row)
+                # Create Ship From Address (only if meaningful data exists)
+                ship_from = None
+                if row[2].strip():  # from_address_line1 present
+                    ship_from, _ = Address.objects.get_or_create(
+                        address_line1=row[2].strip(),
+                        city=row[4].strip(),
+                        state=row[6].strip(),
+                        zip_code=row[5].strip(),
+                        defaults={
+                            "name": f"From {row[0].strip()} {row[1].strip()}",
+                            "first_name": row[0].strip(),
+                            "last_name": row[1].strip(),
+                            "address_line2": row[3].strip(),
+                            "phone": row[19].strip(),
+                        },
+                    )
 
-                shipment = Shipment.objects.create(
-                    batch=batch,
-                    # From
-                    from_first_name=row[0].strip(),
-                    from_last_name=row[1].strip(),
-                    from_address_line1=row[2].strip(),
-                    from_address_line2=row[3].strip(),
-                    from_city=row[4].strip(),
-                    from_zip_code=row[5].strip(),
-                    from_state=row[6].strip(),
-                    # To
-                    to_first_name=row[7].strip(),
-                    to_last_name=row[8].strip(),
-                    to_address_line1=row[9].strip(),
-                    to_address_line2=row[10].strip(),
-                    to_city=row[11].strip(),
-                    to_zip_code=row[12].strip(),
-                    to_state=row[13].strip(),
-                    # Package
-                    weight_lbs=int(row[14]) if row[14].strip().isdigit() else 0,
-                    weight_oz=int(row[15]) if row[15].strip().isdigit() else 0,
+                # Create Ship To Address (required)
+                ship_to, _ = Address.objects.get_or_create(
+                    address_line1=row[9].strip(),
+                    city=row[11].strip(),
+                    state=row[13].strip(),
+                    zip_code=row[12].strip(),
+                    defaults={
+                        "name": f"To {row[7].strip()} {row[8].strip()}",
+                        "first_name": row[7].strip(),
+                        "last_name": row[8].strip(),
+                        "address_line2": row[10].strip(),
+                        "phone": row[19].strip(),
+                    },
+                )
+
+                # Create or match Package (for now create new)
+                package, _ = Package.objects.get_or_create(
                     length_inches=float(row[16]) if row[16].strip() else None,
                     width_inches=float(row[17]) if row[17].strip() else None,
                     height_inches=float(row[18]) if row[18].strip() else None,
-                    # Other
-                    phone_num1=row[19].strip(),
-                    phone_num2=row[20].strip(),
-                    order_no=row[21].strip(),
-                    item_sku=row[22].strip(),
+                    weight_lbs=int(row[14]) if row[14].strip().isdigit() else 0,
+                    weight_oz=int(row[15]) if row[15].strip().isdigit() else 0,
+                    sku=row[22].strip(),
+                    defaults={"name": f"Package for {row[21]}", "saved": False},
                 )
 
-                # Basic validation
-                if (
-                    not shipment.to_zip_code
-                    or shipment.weight_lbs + shipment.weight_oz == 0
+                shipment = Shipment.objects.create(
+                    batch=batch,
+                    ship_from=ship_from,
+                    ship_to=ship_to,
+                    package=package,
+                    order_no=row[21].strip(),
+                )
+
+                # Validate
+                if not shipment.ship_to or (
+                    shipment.package.weight_lbs + shipment.package.weight_oz == 0
                 ):
                     shipment.status = "incomplete"
                     shipment.save(update_fields=["status"])
@@ -186,14 +187,11 @@ class CSVUploadView(GenericAPIView):
                 created += 1
 
             batch.calculate_total()
-            logger.info(
-                f"Batch {batch.id} processed successfully: "
-                f"{created} shipments created, {issues} skipped/invalid"
-            )
+            logger.info(f"Batch {batch.id} success: {created} created, {issues} issues")
 
             return Response(
                 {
-                    "batch_id": batch.id,
+                    "batch_id": str(batch.id),
                     "total_records": created,
                     "issues": issues,
                     "total_price": str(batch.total_price),
@@ -205,22 +203,16 @@ class CSVUploadView(GenericAPIView):
             )
 
         except Exception as exc:
-            logger.error(
-                f"CSV processing failed for user {user.username} - batch creation aborted",
-                exc_info=True,
-            )
+            logger.error(f"CSV failed for {user.username}: {str(exc)}", exc_info=True)
             if "batch" in locals():
-                batch.delete()  # cleanup on failure
+                batch.delete()
             return Response(
-                {"error": "Failed to process CSV file", "detail": str(exc)}, status=500
+                {"error": "CSV processing failed", "detail": str(exc)}, status=500
             )
 
 
 class BulkUpdateView(GenericAPIView):
-    """Bulk update shipments in a batch"""
-
     permission_classes = [IsAuthenticated]
-    serializer_class = None
 
     def post(self, request, batch_id):
         batch = get_object_or_404(Batch, id=batch_id, user=request.user)
@@ -228,68 +220,46 @@ class BulkUpdateView(GenericAPIView):
         shipment_ids = request.data.get("shipment_ids", [])
 
         if not shipment_ids:
-            return Response({"error": "No shipment IDs provided"}, status=400)
+            return Response({"error": "No shipment IDs"}, status=400)
 
-        logger.info(
-            f"Bulk action '{action}' started by {request.user.username} "
-            f"on batch {batch_id} for {len(shipment_ids)} shipments"
-        )
+        logger.info(f"Bulk {action} by {request.user.username} on batch {batch_id}")
 
         updated_count = 0
 
         if action == "change_address":
             address_id = request.data.get("address_id")
             address = get_object_or_404(Address, id=address_id, user=request.user)
-
+            # Apply to both from and to (or only from - adjust as needed)
             updated_count = Shipment.objects.filter(
                 batch=batch, id__in=shipment_ids
-            ).update(
-                from_first_name=address.first_name,
-                from_last_name=address.last_name,
-                from_address_line1=address.address_line1,
-                from_address_line2=address.address_line2,
-                from_city=address.city,
-                from_zip_code=address.zip_code,
-                from_state=address.state,
-                address=address,
-            )
+            ).update(ship_from=address)
 
         elif action == "change_package":
             package_id = request.data.get("package_id")
             package = get_object_or_404(Package, id=package_id, user=request.user)
-
             updated_count = Shipment.objects.filter(
                 batch=batch, id__in=shipment_ids
-            ).update(
-                length_inches=package.length_inches,
-                width_inches=package.width_inches,
-                height_inches=package.height_inches,
-                weight_lbs=package.weight_lbs,
-                weight_oz=package.weight_oz,
-                item_sku=package.sku,
-                package=package,
-            )
+            ).update(package=package)
+            # Recalculate prices
+            for s in batch.shipments.filter(id__in=shipment_ids):
+                s.save(update_fields=["price"])
 
         elif action == "change_service":
             service = request.data.get("service")
             if service not in dict(Shipment.SERVICE_CHOICES):
-                return Response({"error": "Invalid shipping service"}, status=400)
-
+                return Response({"error": "Invalid service"}, status=400)
             updated_count = Shipment.objects.filter(
                 batch=batch, id__in=shipment_ids
             ).update(shipping_service=service)
-
-            for shipment in batch.shipments.filter(id__in=shipment_ids):
-                shipment.save(update_fields=["price"])
+            for s in batch.shipments.filter(id__in=shipment_ids):
+                s.save(update_fields=["price"])
 
         else:
-            return Response({"error": "Unknown bulk action"}, status=400)
+            return Response({"error": "Unknown action"}, status=400)
 
         batch.calculate_total()
-
         logger.info(
-            f"Bulk action '{action}' completed: {updated_count} shipments updated "
-            f"- new batch total: ${batch.total_price}"
+            f"Bulk {action} done: {updated_count} updated, total ${batch.total_price}"
         )
 
         return Response(

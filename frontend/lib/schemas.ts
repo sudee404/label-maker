@@ -22,6 +22,7 @@ export const packageSchema = z.object({
 
 export const shipmentRecordSchema = z.object({
   id: z.string(),
+  batch: z.string(),
   orderNo: z.string().min(1, "Order number is required"),
   shipFrom: addressSchema,
   shipTo: addressSchema,
