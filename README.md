@@ -1,75 +1,100 @@
 # ShipHub – Bulk Shipping Label Creation Platform
 
-Modern web application for e-commerce merchants and fulfillment teams to **bulk-create shipping labels** efficiently.
+Modern **bulk shipping label creation** web application built for e-commerce merchants and fulfillment teams.
 
-Multi-step wizard that allows uploading order data via CSV, reviewing/editing shipments, selecting shipping services, and generating labels.
+Complete multi-step wizard that allows users to:
 
-https://frontend-8c1r.onrender.com 
-*(Frontend – Next.js 16+ App Router)*  
-Backend API: https://backend-pvym.onrender.com
+- Upload orders via CSV (special multi-row header format)
+- Review, edit and fix shipment data
+- Apply saved addresses & package presets in bulk
+- Select shipping services with simulated rates
+- Finalize purchase and generate downloadable labels
 
-(Currently using free Render tier – may be slow on first load due to cold starts. Ensure backend loads before frontend for it to work)
 
-## ✨ Features
+## 🚀 Live Demo & Quick Access
 
-- Drag & drop CSV upload with validation
-- Smart parsing of special multi-row header format (Template.csv)
-- Review & edit mode with inline and modal editing
-- Bulk actions (change sender address, change package preset, delete selected)
-- Saved addresses & saved package presets (demo data included)
-- Simulated shipping rate selection (Priority Mail / Ground)
-- Running total price calculation
-- Final purchase confirmation flow with label size selection
-- Clean sidebar navigation (only Upload Spreadsheet flow implemented)
-- Responsive design (mobile-friendly but optimized for desktop workflows)
+**Live Application:**  
+https://frontend-8c1r.onrender.com  
+*(Free Render tier → first load may take 30–90 seconds due to cold start. Open the backend first if needed: https://backend-pvym.onrender.com)*
 
-## 🏗️ Tech Stack
+### Demo Credentials (already set up)
 
-| Layer          | Technology                                 |
-|----------------|--------------------------------------------|
-| Frontend       | Next.js (App Router) • TypeScript       |
-| Styling        | Tailwind CSS + shadcn/ui                   |
-| State Mgmt     | React Hook Form + Zod            |
-| UI Components  | shadcn/ui, Lucide icons          |
-| Backend        | Django 5 • Django REST Framework           |
-| Database       | SQLite            |
-| Deployment     | Render (separate frontend & backend services) |
-| Containerization | Docker + docker-compose (local dev)      |
+Use these to log in instantly and explore the full bulk shipping workflow:
+
+- **Email:** `demo@shiphub.com`  
+- **Password:** `ChangeMe123!`  
+
+(Or just click on login button as the values are default)
+
+**Quick tip for reviewers:**  
+1. Click the live link above  
+2. Wait for it to wake up (first load is slowest)  
+3. Log in with the credentials above  
+4. Jump straight into the "Upload Spreadsheet" flow from the sidebar
+
+No registration needed — enjoy the demo! 🎉
+
+
+> **Important:** On first visit, **open the backend URL first** to wake it up, then refresh the frontend.
+
+## ✨ Implemented Features (according to PRD)
+
+- Drag & drop CSV upload + file validation
+- Smart parsing of Template.csv (2-row header format)
+- Full review & edit step with inline + modal editing
+- Bulk actions: change sender address / package preset / delete selected
+- Pre-populated **saved addresses** and **package presets**
+- Simulated shipping rates (Priority Mail / Ground) with running total
+- Final purchase flow with label size selection (Letter/A4 or 4x6)
+- PDF label generation & download (simulated)
+- Responsive design (desktop-first, mobile usable)
+- Clean sidebar navigation (only Upload Spreadsheet flow fully implemented)
+- Helpful error states & user feedback
+- Basic user authentication (login/register – demo credentials)
+
+## 🏗 Tech Stack
+
+| Layer              | Technology                                      |
+|--------------------|-------------------------------------------------|
+| Frontend           | Next.js 14+ (App Router) • TypeScript           |
+| Styling            | Tailwind CSS • shadcn/ui                        |
+| Form & Validation  | React Hook Form + Zod                           |
+| State Management   | React Context + local state (no Redux)          |
+| Icons              | Lucide React                                    |
+| Backend            | Django 5 • Django REST Framework                |
+| Database           | SQLite (assessment)                             |
+| Deployment         | Render (separate static frontend + backend)     |
+| Local Dev          | Docker Compose + hot reload                     |
+| PDF Generation     | pdf-lib (client-side)                           |
 
 ## 🚀 Quick Start (Local Development)
 
-### Prerequisites
-
-- Docker & Docker Compose
-- Node.js 20+ (with corepack/pnpm)
-- Python 3.13 (optional if using docker)
-
-### Using Docker Compose (recommended)
+### Recommended – Docker Compose
 
 ```bash
-# 1. Clone repository
 git clone https://github.com/sudee404/label-maker.git
 cd label-maker
 
-# 2. Create .env files (examples provided in repo)
+# Copy example env files
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 
-# 3. Start everything
+# Start (will build everything)
 docker compose up --build
-
-# Frontend → http://localhost:3000
-# Backend API → http://localhost:8000
 ```
 
-### Alternative: Run without Docker
+Open:  
+http://localhost:3000 → Frontend  
+http://localhost:8000 → Backend API docs (optional)
+
+### Manual (without Docker)
 
 **Backend**
 
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate    # or .venv\Scripts\activate on Windows
+source .venv/bin/activate    # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py runserver
@@ -84,75 +109,79 @@ pnpm install
 pnpm dev
 ```
 
-## 📂 Project Structure
+## 📂 Project Structure (simplified)
 
 ```
 label-maker/
-├── backend/                    # Django REST API
+├── backend/                  # Django REST API
 │   ├── config/
 │   ├── shipments/
 │   ├── media/
 │   └── requirements.txt
-│
-├── frontend/                   # Next.js application
-│   ├── app/
-│   ├── components/
-│   ├── lib/
+├── frontend/                 # Next.js 14+ application
+│   ├── app/                  # routes & pages
+│   ├── components/           # shadcn/ui + custom
+│   ├── lib/                  # utils, schemas
 │   ├── hooks/
 │   └── public/
-│
 ├── compose.yml
 └── README.md
 ```
 
-## 🎯 Current Status (Jan 2026)
+## 🛡️ What was intentionally simplified / omitted (assessment constraints)
 
-Implemented almost complete **frontend workflow** according to the technical assessment PRD:
+- No real carrier API integration (Shippo/EasyPost/etc.)
+- No persistent user-specific saved addresses/packages (in-memory + demo data)
+- No order history / reprint flow
+- No advanced address validation (USPS/UPS style)
+- SQLite instead of PostgreSQL
+- No comprehensive unit/integration test suite (only basic backend tests)
 
-- All three main steps + purchase flow
-- Bulk actions & saved presets
-- Data validation & helpful error states
-- Nice UX with shadcn/ui components
-- Export corrected CSV
+## 🎯 Assessment Coverage – PRD Checklist
 
-**Backend currently provides:**
+```text
+✓ Step 1: Upload Spreadsheet (drag & drop + template link)
+✓ Step 2: Review & Edit (table, modals, bulk actions, search)
+✓ Saved Addresses & Saved Packages (pre-populated)
+✓ Step 3: Select Shipping Provider (simulated rates + bulk change)
+✓ Purchase flow (label size + confirmation)
+✓ Delete & navigation warnings
+✓ Running total price
+✓ PDF label download (simulated)
+✓ Clean UI/UX with shadcn/ui & Tailwind
+✓ Responsive layout
+✓ Proper CSV parsing with error handling
+```
 
-- Basic CRUD endpoints for shipments
-- File upload endpoint (optional – most logic lives in frontend for assessment)
+## 🧪 Testing
 
-## 🛠️ Deployment (Render)
+Backend tests:
 
-Project is split into two Render services:
-
-- **Frontend** – Next.js static + server components  
-  https://frontend-8c1r.onrender.com
-
-- **Backend** – Django + Gunicorn + SQLite  
-    https://frontend-8c1r.onrender.com
-
-Both are on **free tier** → expect 30–90 second cold start delay, be sure to start with the backend first
-
-## 🛠️ Testing
-
-Tests have been added to the backend for major endpoints
-Rn with the command:
 ```bash
+cd backend
 python manage.py test
 ```
 
-## 🔮 Planned / Nice-to-have (not implemented yet)
+Frontend: mostly manual testing + React Hook Form + Zod validation
 
-- Real carrier API integration (Shippo/EasyPost/Stamps.com)
-- PDF label generation & download
-- User authentication & multi-account support
-- Order history & reprint functionality
-- Advanced validation (address verification, zip code format)
+## ⚡ Deployment Notes (Render)
+
+- Two separate free-tier services → cold starts are noticeable
+- Recommendation: Wake backend first, then frontend
+- Static assets are well optimized
+- No CDN or caching layer (free tier limitation)
+
+## 🔮 Future / Nice-to-have ideas
+
+- Real carrier integration (Shippo / EasyPost)
+- Address verification (USPS / SmartyStreets)
+- Batch label PDF merging
+- Webhook / order import from Shopify/WooCommerce
+- Multi-user organizations
+- Rate shopping & insurance options
 
 ## 📄 License
 
-MIT
+[MIT License](./LICENSE)
 
 ---
-
-Made with ❤️ for the technical assessment process  
-January 2026

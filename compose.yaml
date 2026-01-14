@@ -1,7 +1,7 @@
 services:
   backend:
     build: ./backend
-    command: bash -c "python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     env_file: ./backend/.env
     volumes:
       - ./backend:/app
@@ -14,7 +14,7 @@ services:
     build: ./frontend
     env_file: ./frontend/.env
     environment:
-      - IS_DOCKER: true
+      - IS_DOCKER=True
     ports:
       - "3000:3000"
     depends_on:
