@@ -500,8 +500,18 @@ class CSVUploadView(GenericAPIView):
                 status=500
             )
 
-
 class BulkUpdateView(GenericAPIView):
+    """
+    API endpoint for bulk-updating multiple shipments in a batch.
+    
+    Important: Because we use queryset .update() for performance in bulk operations,
+    Django **does NOT** trigger model signals (pre_save / post_save).
+    
+    Solution implemented here:
+    1. Perform fast bulk .update() first
+    2. Then fetch affected shipments and call .save() on each one
+       → this triggers the pre_save signal → validation + price recalculation
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, batch_id):
@@ -509,110 +519,127 @@ class BulkUpdateView(GenericAPIView):
         action = request.data.get("action")
         shipment_ids = request.data.get("shipment_ids", [])
 
+        if not shipment_ids:
+            logger.warning(
+                "Bulk update attempted with no shipment IDs | batch=%d | user=%s",
+                batch_id, request.user.full_name
+            )
+            return Response({"error": "No shipment IDs provided"}, status=400)
+
         logger.info(
             "Bulk update started | action=%s | batch=%d | shipments=%d | user=%s",
             action, batch_id, len(shipment_ids), request.user.full_name
         )
 
-        if not shipment_ids:
-            logger.warning("Bulk update with no shipment IDs | batch=%d | user=%s", 
-                          batch_id, request.user.full_name)
-            return Response({"error": "No shipment IDs"}, status=400)
-
         updated_count = 0
 
+        # Fields that the pre_save signal will update/refresh
+        SIGNAL_UPDATED_FIELDS = ['price', 'status', 'error_message']
+
         try:
+            # ────────────────────────────────────────────────────────────────
+            # 1. Fast bulk update (does NOT trigger signals)
+            # ────────────────────────────────────────────────────────────────
             if action == "change_address":
                 address_id = request.data.get("address_id")
                 if not address_id:
-                    return Response({"error": "No address_id provided"}, status=400)
+                    return Response({"error": "address_id is required for change_address"}, status=400)
 
                 address = get_object_or_404(Address, id=address_id)
-                
+
                 updated_count = Shipment.objects.filter(
-                    batch=batch, id__in=shipment_ids
+                    batch=batch,
+                    id__in=shipment_ids
                 ).update(ship_from=address)
 
                 logger.info(
-                    "Bulk address change completed | batch=%d | address=%d | updated=%d",
+                    "Bulk change_address completed | batch=%d | new_address=%d | affected=%d",
                     batch_id, address.id, updated_count
                 )
 
             elif action == "change_package":
                 package_id = request.data.get("package_id")
                 if not package_id:
-                    return Response({"error": "No package_id provided"}, status=400)
+                    return Response({"error": "package_id is required for change_package"}, status=400)
 
                 package = get_object_or_404(Package, id=package_id)
-                
+
                 updated_count = Shipment.objects.filter(
-                    batch=batch, id__in=shipment_ids
+                    batch=batch,
+                    id__in=shipment_ids
                 ).update(package=package)
 
                 logger.info(
-                    "Bulk package change completed | batch=%d | package=%d | updated=%d",
+                    "Bulk change_package completed | batch=%d | new_package=%d | affected=%d",
                     batch_id, package.id, updated_count
                 )
-
-                # Recalculate prices
-                shipments = batch.shipments.filter(id__in=shipment_ids)
-                for s in shipments:
-                    old_price = s.price
-                    s.save(update_fields=["price"])
-                    logger.debug("Price updated | shipment=%d | %.2f → %.2f", 
-                                s.id, old_price or 0, s.price or 0)
 
             elif action == "change_service":
                 service = request.data.get("service")
                 if not service:
-                    return Response({"error": "No service provided"}, status=400)
+                    return Response({"error": "service is required for change_service"}, status=400)
 
                 if service not in dict(Shipment.SERVICE_CHOICES):
-                    logger.warning("Invalid shipping service requested: %s", service)
-                    return Response({"error": "Invalid service"}, status=400)
+                    logger.warning("Invalid shipping service attempted: %s", service)
+                    return Response({"error": "Invalid shipping service"}, status=400)
 
                 updated_count = Shipment.objects.filter(
-                    batch=batch, id__in=shipment_ids
+                    batch=batch,
+                    id__in=shipment_ids
                 ).update(shipping_service=service)
 
                 logger.info(
-                    "Bulk service change completed | batch=%d | service=%s | updated=%d",
+                    "Bulk change_service completed | batch=%d | new_service=%s | affected=%d",
                     batch_id, service, updated_count
                 )
 
-                # Recalculate prices
-                shipments = batch.shipments.filter(id__in=shipment_ids)
-                for s in shipments:
-                    old_price = s.price
-                    s.save(update_fields=["price"])
-                    logger.debug("Price updated | shipment=%d | %.2f → %.2f", 
-                                s.id, old_price or 0, s.price or 0)
-
             else:
-                logger.warning("Unknown bulk action requested: %s", action)
-                return Response({"error": "Unknown action"}, status=400)
+                logger.warning("Unsupported bulk action requested: %s", action)
+                return Response({"error": f"Unknown action: {action}"}, status=400)
 
+            # ────────────────────────────────────────────────────────────────
+            # 2. Re-validate & re-price → trigger pre_save signal
+            # ────────────────────────────────────────────────────────────────
+            if updated_count > 0:
+                # We fetch with select_related to reduce query count inside the signal
+                shipments_to_revalidate = Shipment.objects.filter(
+                    id__in=shipment_ids
+                ).select_related(
+                    'ship_from',
+                    'ship_to',
+                    'package'
+                )
+
+                revalidated_count = 0
+
+                for shipment in shipments_to_revalidate.iterator(chunk_size=100):
+                    # Calling .save() here **will trigger** the pre_save signal
+                    # which does validation + price calculation
+                    shipment.save(update_fields=SIGNAL_UPDATED_FIELDS)
+                    revalidated_count += 1
+
+                logger.info(
+                    "Re-validation & repricing completed | "
+                    "batch=%d | action=%s | revalidated=%d / original_updated=%d",
+                    batch_id, action, revalidated_count, updated_count
+                )
+
+            # Always recalculate batch total after any changes
             batch.calculate_total()
-            
-            logger.info(
-                "Bulk update finished | batch=%d | action=%s | updated=%d | new_total=%.2f",
-                batch_id, action, updated_count, batch.total_price or 0
-            )
 
-            return Response(
-                {
-                    "status": "success",
-                    "updated_count": updated_count,
-                    "new_total": str(batch.total_price or "0.00"),
-                }
-            )
+            return Response({
+                "status": "success",
+                "action": action,
+                "updated_count": updated_count,
+                "new_batch_total": str(batch.total_price or "0.00")
+            }, status=status.HTTP_200_OK)
 
-        except Exception as e:
+        except Exception as exc:
             logger.error(
                 "Bulk update failed | batch=%d | action=%s | error=%s",
-                batch_id, action, str(e), exc_info=True
+                batch_id, action, str(exc), exc_info=True
             )
             return Response(
-                {"error": "Bulk update failed", "detail": str(e)},
-                status=500
+                {"error": "Bulk update failed", "detail": str(exc)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

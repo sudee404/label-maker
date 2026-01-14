@@ -14,97 +14,108 @@ logger = logging.getLogger(__name__)
 @receiver(pre_save, sender=Shipment)
 def validate_and_price_shipment(sender, instance, **kwargs):
     """
-    Signal handler to validate shipment and calculate price before saving.
-    
-    This runs before every save operation, ensuring fresh validation
-    based on the current state of related objects.
+    Signal handler that validates shipment data and calculates price before saving.
+    Produces detailed, user-friendly error messages.
     """
     shipment = instance
     shipment_id = shipment.order_no or f"ID:{shipment.id if shipment.id else 'new'}"
     
     logger.debug(f"Running pre_save validation for Shipment {shipment_id}")
     
-    # Reset error message and price
+    # Reset
     shipment.error_message = ""
     shipment.price = Decimal("0.00")
     errors = []
 
-    # Step 1: Refresh related objects to ensure we have the latest data
-    # This is critical when objects are updated in the same request
+    # ── 1. Refresh related objects (critical in bulk/tight loops) ──────────────
     try:
         if shipment.ship_from_id:
             shipment.ship_from = Address.objects.get(pk=shipment.ship_from_id)
-            logger.debug(f"Refreshed ship_from: {shipment.ship_from}")
         if shipment.ship_to_id:
             shipment.ship_to = Address.objects.get(pk=shipment.ship_to_id)
-            logger.debug(f"Refreshed ship_to: {shipment.ship_to}")
         if shipment.package_id:
             shipment.package = Package.objects.get(pk=shipment.package_id)
-            logger.debug(f"Refreshed package: {shipment.package}")
     except (Address.DoesNotExist, Package.DoesNotExist) as e:
-        logger.error(f"Error refreshing related objects for Shipment {shipment_id}: {str(e)}")
+        logger.error(f"Critical: Related object missing for Shipment {shipment_id}: {e}")
+        errors.append("System error: Related address or package record could not be found")
 
-    # Step 2: Check for missing required relationships (incomplete status)
+    # ── 2. Missing required relationships ──────────────────────────────────────
     missing_parts = []
-    if not shipment.ship_from_id or not shipment.ship_from:
-        missing_parts.append("sender address")
-    if not shipment.ship_to_id or not shipment.ship_to:
-        missing_parts.append("recipient address")
-    if not shipment.package_id or not shipment.package:
-        missing_parts.append("package")
+    if not shipment.ship_from:
+        missing_parts.append("Sender (ship-from) address is missing")
+    if not shipment.ship_to:
+        missing_parts.append("Recipient (ship-to) address is missing")
+    if not shipment.package:
+        missing_parts.append("Package information is missing")
 
     if missing_parts:
         shipment.status = "incomplete"
-        shipment.error_message = f"Missing required information: {', '.join(missing_parts)}"
-        
-        logger.info(
-            f"Shipment {shipment_id} marked as incomplete: {shipment.error_message}"
-        )
+        shipment.error_message = "Incomplete shipment: " + "; ".join(missing_parts) + "."
+        logger.info(f"Shipment {shipment_id} incomplete: {shipment.error_message}")
         return
 
-    # Step 3: All required parts exist, now validate them (error status if invalid)
-    
-    # Validate ship_from address
-    is_valid, error_msg = shipment.validate_address(shipment.ship_from, "sender")
-    if not is_valid:
-        errors.append(error_msg)
+    # ── 3. Detailed field-level validation ─────────────────────────────────────
+    # Sender address validation
+    is_valid_from, msg_from = shipment.validate_address(shipment.ship_from, "sender")
+    if not is_valid_from:
+        errors.append(f"Sender address: {msg_from}")
 
-    # Validate ship_to address
-    is_valid, error_msg = shipment.validate_address(shipment.ship_to, "recipient")
-    if not is_valid:
-        errors.append(error_msg)
+    # Recipient address validation
+    is_valid_to, msg_to = shipment.validate_address(shipment.ship_to, "recipient")
+    if not is_valid_to:
+        errors.append(f"Recipient address: {msg_to}")
 
-    # Validate package
-    is_valid, error_msg = shipment.validate_package()
-    if not is_valid:
-        errors.append(error_msg)
+    # Package validation
+    is_valid_pkg, msg_pkg = shipment.validate_package()
+    if not is_valid_pkg:
+        errors.append(f"Package: {msg_pkg}")
 
-    # Step 4: Set final status and price
+    # ── 4. Final decision ──────────────────────────────────────────────────────
     if errors:
         shipment.status = "error"
-        shipment.error_message = " | ".join(errors)
-        shipment.price = Decimal("0.00")
+        # Join with newlines + numbering for better readability in logs & API
+        shipment.error_message = "Validation failed:\n" + "\n".join(
+            f"{i+1}. {err}" for i, err in enumerate(errors)
+        )
         
         logger.warning(
-            f"Shipment {shipment_id} has validation errors: {shipment.error_message}"
+            "Shipment %s validation failed:\n%s",
+            shipment_id,
+            shipment.error_message
         )
     else:
         shipment.status = "valid"
-        shipment.price = shipment.calculate_price()
-        
-        logger.info(
-            f"Shipment {shipment_id} validated successfully. "
-            f"Service: {shipment.shipping_service}, Price: ${shipment.price}"
-        )
+        try:
+            shipment.price = shipment.calculate_price()
+            logger.info(
+                "Shipment %s validated OK | Service: %s | Price: $%s",
+                shipment_id,
+                shipment.shipping_service,
+                shipment.price
+            )
+        except Exception as exc:
+            shipment.status = "error"
+            shipment.error_message = f"Price calculation failed: {str(exc)}"
+            logger.error("Price calculation error for %s: %s", shipment_id, exc, exc_info=True)
 
-    # Log comprehensive shipment details
+    # ── Final detailed log (very useful during debugging) ──────────────────────
     logger.debug(
-        f"Pre-save validation complete for Shipment {shipment_id} - "
-        f"Status: {shipment.status}, "
-        f"Service: {shipment.shipping_service}, "
-        f"Price: ${shipment.price}, "
-        f"Ship From ID: {shipment.ship_from_id}, "
-        f"Ship To ID: {shipment.ship_to_id}, "
-        f"Package ID: {shipment.package_id}, "
-        f"Errors: {shipment.error_message if shipment.error_message else 'None'}"
+        "Validation result for Shipment %s:\n"
+        "  Status: %s\n"
+        "  Price: $%s\n"
+        "  Service: %s\n"
+        "  Ship From: %s\n"
+        "  Ship To: %s\n"
+        "  Package: %s\n"
+        "  Errors: %s",
+        shipment_id,
+        shipment.status,
+        shipment.price,
+        shipment.shipping_service,
+        shipment.ship_from_id,
+        shipment.ship_to_id,
+        shipment.package_id,
+        shipment.error_message or "None"
     )
+    
+    
