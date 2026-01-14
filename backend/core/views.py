@@ -128,7 +128,7 @@ class BatchViewSet(viewsets.ModelViewSet):
                 "ship_from", "ship_to", "package"
             ).order_by("id")
             
-            pdf_buffer = generate_shipping_labels_pdf(shipments)
+            pdf_buffer = generate_shipping_labels_pdf(shipments,label_format=batch.label_format)
             
             buffer_size = pdf_buffer.tell()
             pdf_buffer.seek(0)

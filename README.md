@@ -1,4 +1,4 @@
-**# ShipHub – Bulk Shipping Label Creation Platform**
+# ShipHub – Bulk Shipping Label Creation Platform
 
 Modern web application for e-commerce merchants and fulfillment teams to **bulk-create shipping labels** efficiently.
 
@@ -130,7 +130,15 @@ Project is split into two Render services:
 - **Backend** – Django + Gunicorn + SQLite  
     https://frontend-8c1r.onrender.com
 
-Both are on **free tier** → expect 30–90 second cold start delay
+Both are on **free tier** → expect 30–90 second cold start delay, be sure to start with the backend first
+
+## 🛠️ Testing
+
+Tests have been added to the backend for major endpoints
+Rn with the command:
+```bash
+python manage.py test
+```
 
 ## 🔮 Planned / Nice-to-have (not implemented yet)
 
