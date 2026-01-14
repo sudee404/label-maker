@@ -184,7 +184,6 @@ export function UploadStep({ onUpload }: UploadStepProps) {
                       />
                       <Button
                         disabled={isLoading}
-                        onClick={() => fileInputRef.current?.click()}
                       >
                         Select File
                       </Button>

@@ -47,16 +47,16 @@ export async function DELETE(
 
     const { id } = await params;
 
-    await api.delete(`/core/shipments/${id}/`);
+    await api.delete(`/core/batches/${id}/`);
 
     return NextResponse.json({
       success: true,
-      message: "Shipment deleted successfully",
+      message: "Batch deleted successfully",
       deletedId: id,
     });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: "Failed to delete shipment" },
+      { success: false, error: "Failed to delete batch" },
       { status: 500 }
     );
   }

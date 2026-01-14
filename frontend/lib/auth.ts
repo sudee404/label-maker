@@ -62,7 +62,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           accessToken: user.accessToken,
           refreshToken: user.refreshToken,
-          accessTokenExpires: Date.now() + 1 * 60 * 1000,
+          accessTokenExpires: Date.now() + 15 * 60 * 1000,
         };
       }
 
@@ -88,7 +88,7 @@ export const authOptions: NextAuthOptions = {
           ...token,
           accessToken: refreshed.access,
           refreshToken: refreshed.refresh ?? token.refreshToken,
-          accessTokenExpires: Date.now() + 1 * 60 * 1000,
+          accessTokenExpires: Date.now() + 15* 60 * 1000,
         };
       } catch (error: any) {
         console.error("[JWT] Refresh failed:", error?.response?.data || error);

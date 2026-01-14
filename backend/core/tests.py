@@ -21,7 +21,6 @@ class BaseAPITestCase(TestCase):
 
         # Create sample saved address & package
         self.address = Address.objects.create(
-            user=self.user,
             name="Main Office",
             first_name="Test",
             last_name="User",
@@ -33,7 +32,6 @@ class BaseAPITestCase(TestCase):
         )
 
         self.package = Package.objects.create(
-            user=self.user,
             name="Small Parcel",
             length_inches=10.00,
             width_inches=8.00,

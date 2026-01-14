@@ -1,3 +1,5 @@
+import logging
+from decimal import Decimal
 from django.db import models
 from django.contrib.auth import get_user_model
 
@@ -5,6 +7,7 @@ from common.models.base_model import BaseModel
 
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class Address(BaseModel):
@@ -25,7 +28,7 @@ class Address(BaseModel):
         """Meta definition for Address."""
 
         verbose_name = "Saved Address"
-        verbose_name_plural = "Saved Addresss"
+        verbose_name_plural = "Saved Addresses"
         ordering = ["name"]
 
     def __str__(self):
@@ -78,7 +81,7 @@ class Batch(BaseModel):
         """Meta definition for Batch."""
 
         verbose_name = "Batch"
-        verbose_name_plural = "Batchs"
+        verbose_name_plural = "Batches"
         ordering = ["-created_at"]
 
     def __str__(self):
@@ -86,9 +89,24 @@ class Batch(BaseModel):
         return f"Batch {self.id} ({self.status})"
 
     def calculate_total(self):
-        total = sum(shipment.price for shipment in self.shipments.all())
-        self.total_price = total
-        self.save(update_fields=["total_price", "updated_at"])
+        """Calculate total price from all shipments in batch."""
+        try:
+            shipments = self.shipments.all()
+            total = sum(
+                shipment.price for shipment in shipments if shipment.price is not None
+            )
+            self.total_price = Decimal(str(total))
+            self.save(update_fields=["total_price", "updated_at"])
+
+            logger.info(
+                f"Calculated total for Batch {self.id}: "
+                f"${self.total_price} from {shipments.count()} shipments"
+            )
+        except Exception as e:
+            logger.error(
+                f"Error calculating total for Batch {self.id}: {str(e)}", exc_info=True
+            )
+            raise
 
 
 class Shipment(BaseModel):
@@ -133,9 +151,10 @@ class Shipment(BaseModel):
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="valid")
     shipping_service = models.CharField(
-        max_length=20, choices=SERVICE_CHOICES, null=True, blank=True
+        max_length=20, choices=SERVICE_CHOICES, default="ground"
     )
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    error_message = models.TextField(blank=True)
 
     class Meta:
         """Meta definition for Shipment."""
@@ -148,10 +167,156 @@ class Shipment(BaseModel):
         """Unicode representation of Shipment."""
         return f"Order {self.order_no or self.id}"
 
+    def validate_address(self, address, address_type="address"):
+        """
+        Validate an address object.
+
+        Args:
+            address: Address object to validate
+            address_type: Type of address for error messaging ('sender' or 'recipient')
+
+        Returns:
+            tuple: (is_valid, error_message)
+        """
+        if not address:
+            error = f"Missing {address_type} address"
+            logger.debug(f"Address validation failed: {error}")
+            return False, error
+
+        # Check required fields
+        required_fields = {
+            "first_name": (address.first_name, "first name"),
+            "last_name": (address.last_name, "last name"),
+            "address_line1": (address.address_line1, "address line 1"),
+            "city": (address.city, "city"),
+            "state": (address.state, "state"),
+            "zip_code": (address.zip_code, "zip code"),
+        }
+
+        missing_fields = []
+        for field_name, (value, display_name) in required_fields.items():
+            if not value or (isinstance(value, str) and not value.strip()):
+                missing_fields.append(display_name)
+
+        if missing_fields:
+            error = f"{address_type.capitalize()} address missing: {', '.join(missing_fields)}"
+            logger.debug(f"Address validation failed: {error}")
+            return False, error
+
+        # Validate state code length
+        state_clean = address.state.strip()
+        if len(state_clean) != 2:
+            error = f"{address_type.capitalize()} address has invalid state code: '{address.state}' (must be 2 characters)"
+            logger.debug(f"Address validation failed: {error}")
+            return False, error
+
+        # Validate zip code length
+        zip_clean = address.zip_code.strip()
+        if not (5 <= len(zip_clean) <= 10):
+            error = f"{address_type.capitalize()} address has invalid zip code: '{address.zip_code}' (must be 5-10 characters)"
+            logger.debug(f"Address validation failed: {error}")
+            return False, error
+
+        logger.debug(f"{address_type.capitalize()} address validated successfully")
+        return True, ""
+
+    def validate_package(self):
+        """
+        Validate package dimensions and weight.
+
+        Returns:
+            tuple: (is_valid, error_message)
+        """
+        if not self.package:
+            error = "Missing package information"
+            logger.debug(f"Package validation failed: {error}")
+            return False, error
+
+        package = self.package
+        errors = []
+
+        # Check dimensions are positive
+        try:
+            length = Decimal(str(package.length_inches))
+            width = Decimal(str(package.width_inches))
+            height = Decimal(str(package.height_inches))
+
+            if length <= 0:
+                errors.append("length must be greater than 0")
+            if width <= 0:
+                errors.append("width must be greater than 0")
+            if height <= 0:
+                errors.append("height must be greater than 0")
+
+            if errors:
+                error = f"Package has invalid dimensions: {', '.join(errors)}"
+                logger.debug(f"Package validation failed: {error}")
+                return False, error
+
+        except (ValueError, TypeError, Exception) as e:
+            error = f"Package has invalid dimension values: {str(e)}"
+            logger.warning(f"Package dimension conversion error: {error}")
+            return False, error
+
+        # Check weight is not negative
+        if package.weight_lbs < 0:
+            error = "Package weight (lbs) cannot be negative"
+            logger.debug(f"Package validation failed: {error}")
+            return False, error
+
+        if package.weight_oz < 0:
+            error = "Package weight (oz) cannot be negative"
+            logger.debug(f"Package validation failed: {error}")
+            return False, error
+
+        # Check weight is not zero
+        if package.weight_lbs == 0 and package.weight_oz == 0:
+            error = "Package weight must be greater than 0"
+            logger.debug(f"Package validation failed: {error}")
+            return False, error
+
+        # Check ounces are valid (should be 0-15)
+        if package.weight_oz >= 16:
+            error = (
+                f"Package weight ounces must be less than 16 (got {package.weight_oz})"
+            )
+            logger.debug(f"Package validation failed: {error}")
+            return False, error
+
+        logger.debug("Package validated successfully")
+        return True, ""
+
+    def calculate_price(self):
+        """Calculate shipping price based on service and weight."""
+        if not self.shipping_service:
+            logger.warning("Cannot calculate price: no shipping service selected")
+            return Decimal("0.00")
+
+        if not self.package:
+            logger.warning("Cannot calculate price: no package assigned")
+            return Decimal("0.00")
+
+        # Set base rates and per-ounce rates
+        if self.shipping_service == "priority":
+            base = Decimal("5.00")
+            per_oz = Decimal("0.10")
+        else:  # ground
+            base = Decimal("2.50")
+            per_oz = Decimal("0.05")
+
+        # Calculate total ounces
+        total_oz = (self.package.weight_lbs * 16) + self.package.weight_oz
+        price = base + (per_oz * Decimal(str(total_oz)))
+
+        # Round to 2 decimal places
+        price = price.quantize(Decimal("0.01"))
+
+        logger.debug(
+            f"Calculated price for shipment {self.order_no or 'new'}: ${price} "
+            f"(service: {self.shipping_service}, weight: {total_oz}oz)"
+        )
+
+        return price
+
     def save(self, *args, **kwargs):
-        if self.shipping_service:
-            base = 5.00 if self.shipping_service == "priority" else 2.50
-            per_oz = 0.10 if self.shipping_service == "priority" else 0.05
-            total_oz = (self.weight_lbs * 16) + self.weight_oz
-            self.price = base + (per_oz * total_oz)
-        super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)

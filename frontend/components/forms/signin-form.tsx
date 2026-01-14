@@ -66,7 +66,7 @@ export function SignInForm() {
             <label htmlFor="email" className="text-sm font-medium">
               Email
             </label>
-            <Input id="email" type="email" placeholder="your@email.com" {...register("email")} disabled={isLoading} />
+            <Input id="email" type="email" placeholder="your@email.com" defaultValue={"demo@shiphub.com"} {...register("email")} disabled={isLoading} />
             {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
           </div>
 
@@ -77,6 +77,7 @@ export function SignInForm() {
             <Input
               id="password"
               type="password"
+              defaultValue={"ChangeMe123!"} 
               placeholder="••••••••"
               {...register("password")}
               disabled={isLoading}

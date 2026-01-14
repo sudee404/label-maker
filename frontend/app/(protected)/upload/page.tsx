@@ -48,22 +48,6 @@ export default function Dashboard() {
     }
   }, [searchParams]);
 
-  const savedAddresses = useQuery({
-    queryKey: ["addresses"],
-    queryFn: async () =>
-      await axios
-        .get("/api/addresses", { params: { saved: true } })
-        .then((res) => res?.data),
-  });
-
-  const savedPackages = useQuery({
-    queryKey: ["packages"],
-    queryFn: async () =>
-      await axios
-        .get("/api/packages", { params: { saved: true } })
-        .then((res) => res?.data),
-  });
-
   const {
     data: { data: shipments = [] } = {},
     isLoading,
@@ -94,6 +78,12 @@ export default function Dashboard() {
     router.push(`/upload?${params.toString()}`);
   };
 
+  const handleNavigate = (step: String) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("step", `${step}`);
+    router.push(`/upload?${params.toString()}`);
+  };
+
   const handleNavigateBack = (targetStep: Step) => {
     if (currentStep === "review" && targetStep === "upload") {
       toast(
@@ -104,14 +94,21 @@ export default function Dashboard() {
           </p>
           <div className="flex gap-2">
             <button
-              onClick={() => {
-                setCurrentStep(targetStep);
-                setBatch(undefined);
-                refetch();
-                setSelectedRows(new Set());
-                setFilter({ page: 1, pageSize: 10, search: "" });
-                toast.dismiss();
-              }}
+              onClick={async () =>
+                await axios
+                  .delete(`/api/batches/${batch}/`)
+                  .then(() => {
+                    handleNavigate(targetStep);
+                    refetch();
+                    setSelectedRows(new Set());
+                    setFilter({ page: 1, pageSize: 10, search: "" });
+                    toast.dismiss();
+                  })
+                  .catch((err) => {
+                    console.log(err);
+                    toast.error("Error clearing data");
+                  })
+              }
               className="px-3 py-1 bg-destructive text-destructive-foreground rounded text-sm hover:bg-destructive/90"
             >
               Continue
@@ -130,12 +127,8 @@ export default function Dashboard() {
     }
   };
 
-  const handleUpdateRecords = (updated: ShipmentRecord[]) => {
-    setRecords(updated);
-  };
-
   const handleReset = () => {
-    setCurrentStep("upload");
+    handleNavigate("upload");
     refetch();
     setSelectedRows(new Set());
     setFilter({ page: 1, pageSize: 10, search: "" });
@@ -153,7 +146,7 @@ export default function Dashboard() {
           setFilter={setFilter}
           onUpdate={refetch}
           loading={isLoading}
-          onContinue={() => setCurrentStep("shipping")}
+          onContinue={() => handleNavigate("shipping")}
           onBack={() => handleNavigateBack("upload")}
           selectedRows={selectedRows}
           onSelectRows={setSelectedRows}
@@ -161,10 +154,15 @@ export default function Dashboard() {
       )}
       {currentStep === "shipping" && (
         <ShippingStep
-          records={records}
-          onUpdate={handleUpdateRecords}
-          onContinue={() => setCurrentStep("purchase")}
-          onBack={() => setCurrentStep("review")}
+          batch={batch as string}
+          data={shipments}
+          loading={isLoading}
+          filter={filter}
+          setFilter={setFilter}
+          records={shipments?.results}
+          onUpdate={refetch}
+          onContinue={() => handleNavigate("purchase")}
+          onBack={() => handleNavigate("review")}
           selectedRows={selectedRows}
           onSelectRows={setSelectedRows}
         />
@@ -174,8 +172,8 @@ export default function Dashboard() {
           records={records}
           labelSize={labelSize}
           onLabelSizeChange={setLabelSize}
-          onPurchase={() => setCurrentStep("success")}
-          onBack={() => setCurrentStep("shipping")}
+          onPurchase={() => handleNavigate("success")}
+          onBack={() => handleNavigate("shipping")}
         />
       )}
       {currentStep === "success" && (

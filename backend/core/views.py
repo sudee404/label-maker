@@ -7,6 +7,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.generics import GenericAPIView
 from django.shortcuts import get_object_or_404
+from django.db.models import Sum
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
@@ -87,6 +88,16 @@ class ShipmentViewSet(viewsets.ModelViewSet):
         "ship_from__name",
     ]
     queryset = Shipment.objects.all()
+    
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        
+        queryset = self.filter_queryset(self.get_queryset())
+        total_price = queryset.aggregate(total=Sum('price'))['total'] or 0.00
+        
+        response.data['total_prices'] = str(total_price)
+        
+        return response
 
 
     # ───────────────────────────────────────────────────────────────

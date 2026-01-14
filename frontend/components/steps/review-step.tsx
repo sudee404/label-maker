@@ -13,6 +13,7 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  CircleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,11 @@ import { toast } from "sonner";
 import type { ShipmentRecord } from "@/lib/schemas";
 import { ShipmentFilter } from "@/app/(protected)/upload/page";
 import axios from "axios";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ReviewStepProps {
   records: ShipmentRecord[];
@@ -341,6 +347,76 @@ export function ReviewStep({
       cell: ({ row }) => (
         <div className="font-medium">{row.original.order_no}</div>
       ),
+    },
+    {
+      accessorKey: "status",
+      header: () => {
+        const isSorted = filter.sortBy === "status";
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => handleSort("status")}
+            className="h-8 px-2"
+          >
+            Status
+            <ArrowUpDown
+              className={`ml-2 h-4 w-4 ${isSorted ? "text-primary" : ""}`}
+            />
+          </Button>
+        );
+      },
+      cell: ({ row }) => {
+        const status = row.original.status;
+
+        const getStatusBadge = (status: string) => {
+          const baseClasses =
+            "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
+
+          switch (status) {
+            case "valid":
+              return (
+                <span className={`${baseClasses} bg-green-100 text-green-800`}>
+                  <span className="mr-1">✓</span>
+                  Valid
+                </span>
+              );
+            case "incomplete":
+              return (
+                <>
+                  <span
+                    className={`${baseClasses} bg-yellow-100 text-yellow-800`}
+                  >
+                    <span className="mr-1">↻</span>
+                    Incomplete
+                  </span>
+                  {row.original.error_message && (
+                    <Tooltip>
+                      <TooltipTrigger><CircleAlert className="text-red-600"/></TooltipTrigger>
+                      <TooltipContent>
+                        <p>{row.original.error_message}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </>
+              );
+            case "error":
+              return (
+                <span className={`${baseClasses} bg-red-100 text-red-800`}>
+                  <span className="mr-1">⚠</span>
+                  Error
+                </span>
+              );
+            default:
+              return (
+                <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
+                  {status}
+                </span>
+              );
+          }
+        };
+
+        return <div className="font-medium">{getStatusBadge(status)}</div>;
+      },
     },
     {
       id: "actions",
