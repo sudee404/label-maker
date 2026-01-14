@@ -447,14 +447,56 @@ export function ShippingStep({
           </thead>
           <tbody className="[&_tr:last-child]:border-0">
             {loading ? (
-              <tr className="border-b transition-colors hover:bg-muted/50">
-                <td
-                  colSpan={columns.length}
-                  className="p-4 align-middle h-24 text-center"
+              Array.from({ length: filter?.pageSize ?? 10 }).map((_, index) => (
+                <tr
+                  key={`skeleton-${index}`}
+                  className="border-b transition-colors animate-pulse"
                 >
-                  Loading...
-                </td>
-              </tr>
+                  {/* Checkbox */}
+                  <td className="p-4">
+                    <div className="h-5 w-5 rounded bg-muted" />
+                  </td>
+
+                  {/* Ship From */}
+                  <td className="p-4">
+                    <div className="space-y-2">
+                      <div className="h-5 w-36 rounded bg-muted" />
+                      <div className="h-4 w-28 rounded bg-muted/70" />
+                    </div>
+                  </td>
+
+                  {/* Ship To */}
+                  <td className="p-4">
+                    <div className="space-y-2">
+                      <div className="h-5 w-40 rounded bg-muted" />
+                      <div className="h-4 w-56 rounded bg-muted/70" />
+                    </div>
+                  </td>
+
+                  {/* Package */}
+                  <td className="p-4">
+                    <div className="h-5 w-48 rounded bg-muted" />
+                  </td>
+
+                  {/* Order # */}
+                  <td className="p-4">
+                    <div className="h-5 w-24 rounded bg-muted" />
+                  </td>
+
+                  {/* Status */}
+                  <td className="p-4">
+                    <div className="h-6 w-24 rounded-full bg-muted" />
+                  </td>
+
+                  {/* Actions */}
+                  <td className="p-4">
+                    <div className="flex gap-2">
+                      <div className="h-8 w-8 rounded-md bg-muted" />
+                      <div className="h-8 w-8 rounded-md bg-muted" />
+                    </div>
+                  </td>
+                </tr>
+              ))
             ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <tr

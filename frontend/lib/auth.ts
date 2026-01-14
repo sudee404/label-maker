@@ -4,8 +4,13 @@ import api from "@/lib/axios";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET!,
-  pages: { signIn: "/login" },
-  session: { strategy: "jwt", maxAge: 24 * 60 * 60 },
+  pages: {
+    signIn: "/login",
+  },
+  session: {
+    strategy: "jwt",
+    maxAge: 1 * 24 * 60 * 60, // 1 day
+  },
 
   providers: [
     CredentialsProvider({
@@ -27,8 +32,7 @@ export const authOptions: NextAuthOptions = {
 
           const data = response.data;
 
-          // Validate the shape
-          if (!data?.access || !data?.refresh || !data?.user?.email) {
+          if (!data?.access || !data?.user?.email) {
             console.error("[AUTH] Invalid login response from Django");
             return null;
           }
@@ -53,7 +57,7 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token, user }) {
-      // Initial sign-in
+      // Only run on initial sign in
       if (user) {
         return {
           ...token,
@@ -62,38 +66,10 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           accessToken: user.accessToken,
           refreshToken: user.refreshToken,
-          accessTokenExpires: Date.now() + 15 * 60 * 1000,
         };
       }
 
-      // Token refresh
-      if (Date.now() < (token.accessTokenExpires as number)) {
-        return token;
-      }
-
-      console.log("[JWT] Access token expired, attempting refresh...");
-
-      try {
-        const refreshResponse = await api.post("/accounts/token/refresh/", {
-          refresh: token.refreshToken,
-        });
-
-        const refreshed = refreshResponse.data;
-
-        if (!refreshed?.access) {
-          throw new Error("No new access token received");
-        }
-
-        return {
-          ...token,
-          accessToken: refreshed.access,
-          refreshToken: refreshed.refresh ?? token.refreshToken,
-          accessTokenExpires: Date.now() + 15* 60 * 1000,
-        };
-      } catch (error: any) {
-        console.error("[JWT] Refresh failed:", error?.response?.data || error);
-        return { ...token, error: "RefreshTokenError" };
-      }
+      return token;
     },
 
     async session({ session, token }) {
@@ -103,6 +79,7 @@ export const authOptions: NextAuthOptions = {
         session.user.name = token.name as string;
         session.accessToken = token.accessToken as string;
       }
+
       return session;
     },
   },

@@ -11,24 +11,22 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { LoaderCircle } from "lucide-react"
 
 export function SignInForm() {
   const router = useRouter()
   const [error, setError] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors,isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   })
 
   async function onSubmit(data: LoginInput) {
-    setIsLoading(true)
     setError("")
-
     try {
       const result = await signIn("credentials", {
         email: data.email,
@@ -43,8 +41,6 @@ export function SignInForm() {
       }
     } catch (err) {
       setError("An error occurred. Please try again.")
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -66,7 +62,7 @@ export function SignInForm() {
             <label htmlFor="email" className="text-sm font-medium">
               Email
             </label>
-            <Input id="email" type="email" placeholder="your@email.com" defaultValue={"demo@shiphub.com"} {...register("email")} disabled={isLoading} />
+            <Input id="email" type="email" placeholder="your@email.com" defaultValue={"demo@shiphub.com"} {...register("email")} disabled={isSubmitting} />
             {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
           </div>
 
@@ -80,13 +76,18 @@ export function SignInForm() {
               defaultValue={"ChangeMe123!"} 
               placeholder="••••••••"
               {...register("password")}
-              disabled={isLoading}
+              disabled={isSubmitting}
             />
             {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Signing in..." : "Sign In"}
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ?  (
+              <span className="flex items-center justify-center gap-2">
+                <LoaderCircle className="w-4 h-4 animate-spin" />
+                <span>Signing in...</span>
+              </span>
+            ) : "Sign In"}
           </Button>
         </form>
 

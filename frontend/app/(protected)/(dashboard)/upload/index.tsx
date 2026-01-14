@@ -18,9 +18,8 @@ export type ShipmentFilter = {
   search?: string;
   page: number;
   pageSize: number;
-  sortBy?: string; // e.g. "order_no", "ship_to.first_name"
+  sortBy?: string;
   sortDirection?: "asc" | "desc";
-  // future: status, date range, etc.
 };
 
 export default function UploadPage() {
@@ -33,7 +32,6 @@ export default function UploadPage() {
   });
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [records, setRecords] = useState<ShipmentRecord[]>([]);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [labelSize, setLabelSize] = useState<"letter" | "4x6">("4x6");
 

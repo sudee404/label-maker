@@ -46,9 +46,11 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        <MyProviders>
-          <Providers session={session as any}>{children} </Providers>
-        </MyProviders>
+        <Providers session={session as any}>
+          <MyProviders>
+            {children}
+            </MyProviders>
+        </Providers>
         <Toaster />
 
         <Analytics />

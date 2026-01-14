@@ -25,7 +25,6 @@ export async function POST(req: Request) {
     );
   } catch (error: any) {
     console.error('Registration error:', error);
-
     const status = error.response?.status || error.status || 500;
     const message =
       error.response?.data?.message ||
