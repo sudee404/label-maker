@@ -23,7 +23,7 @@ export type ShipmentFilter = {
   // future: status, date range, etc.
 };
 
-export default function Dashboard() {
+export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState<Step>("upload");
   const [batch, setBatch] = useState<String | undefined>();
   const [filter, setFilter] = useState<ShipmentFilter>({

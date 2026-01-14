@@ -42,7 +42,7 @@ export function Header() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold">
+              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold cursor-pointer">
                 {getInitials(session?.user?.name as string)}
               </div>
             </DropdownMenuTrigger>

@@ -22,7 +22,7 @@ import { BulkActionsModal } from "@/components/modals/bulk-actions-modal";
 import { EditRecordModal } from "@/components/modals/edit-record-modal";
 import { toast } from "sonner";
 import type { ShipmentRecord } from "@/lib/schemas";
-import { ShipmentFilter } from "@/app/(protected)/upload/page";
+import { ShipmentFilter } from "@/app/(protected)/(dashboard)/upload";
 import axios from "axios";
 import {
   Tooltip,

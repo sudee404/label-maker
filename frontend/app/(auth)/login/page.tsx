@@ -18,15 +18,7 @@ export default async function LoginPage() {
           <h1 className="text-4xl font-bold text-white mb-2">ShipHub</h1>
           <p className="text-slate-400">Unified logistics management platform</p>
         </div>
-
         <SignInForm />
-
-        <p className="text-center text-white/70 mt-6">
-          Don{"'"}t have an account?{" "}
-          <Link href="/register" className="text-accent font-semibold hover:underline">
-            Sign up
-          </Link>
-        </p>
       </div>
     </div>
   )

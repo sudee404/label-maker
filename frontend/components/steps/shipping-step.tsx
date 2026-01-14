@@ -20,7 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import type { ShipmentRecord } from "@/lib/schemas";
 import axios from "axios";
-import { ShipmentFilter } from "@/app/(protected)/upload/page";
+import { ShipmentFilter } from "@/app/(protected)/(dashboard)/upload";
 
 interface ShippingStepProps {
   records: ShipmentRecord[];

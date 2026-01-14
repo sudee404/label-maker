@@ -18,15 +18,7 @@ export default async function RegisterPage() {
           <h1 className="text-4xl font-bold text-white mb-2">ShipHub</h1>
           <p className="text-slate-400">Create your account to get started</p>
         </div>
-
         <SignUpForm />
-
-        <p className="text-center text-white/70 mt-6">
-          Already have an account?{" "}
-          <Link href="/login" className="text-accent font-semibold hover:underline">
-            Sign in
-          </Link>
-        </p>
       </div>
     </div>
   )

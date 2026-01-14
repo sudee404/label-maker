@@ -13,6 +13,8 @@ services:
   frontend:
     build: ./frontend
     env_file: ./frontend/.env
+    environment:
+      - IS_DOCKER: true
     ports:
       - "3000:3000"
     depends_on:
