@@ -1,36 +1,150 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+**# ShipHub – Bulk Shipping Label Creation Platform**
 
-## Getting Started
+Modern web application for e-commerce merchants and fulfillment teams to **bulk-create shipping labels** efficiently.
 
-First, run the development server:
+Multi-step wizard that allows uploading order data via CSV, reviewing/editing shipments, selecting shipping services, and generating labels.
+
+https://label-maker-frontend.onrender.com  
+*(Frontend – Next.js 14+ App Router)*  
+Backend API: https://backend-pvym.onrender.com
+
+(Currently using free Render tier – may be slow on first load due to cold starts. Ensure backend loads before frontend for it to work)
+
+## ✨ Features
+
+- Drag & drop CSV upload with validation
+- Smart parsing of special multi-row header format (Template.csv)
+- Review & edit mode with inline and modal editing
+- Bulk actions (change sender address, change package preset, delete selected)
+- Saved addresses & saved package presets (demo data included)
+- Simulated shipping rate selection (Priority Mail / Ground)
+- Running total price calculation
+- Final purchase confirmation flow with label size selection
+- Clean sidebar navigation (only Upload Spreadsheet flow implemented)
+- Responsive design (mobile-friendly but optimized for desktop workflows)
+
+## 🏗️ Tech Stack
+
+| Layer          | Technology                                 |
+|----------------|--------------------------------------------|
+| Frontend       | Next.js (App Router) • TypeScript       |
+| Styling        | Tailwind CSS + shadcn/ui                   |
+| State Mgmt     | React Hook Form + Zod            |
+| UI Components  | shadcn/ui, Lucide icons          |
+| Backend        | Django 5 • Django REST Framework           |
+| Database       | SQLite            |
+| Deployment     | Render (separate frontend & backend services) |
+| Containerization | Docker + docker-compose (local dev)      |
+
+## 🚀 Quick Start (Local Development)
+
+### Prerequisites
+
+- Docker & Docker Compose
+- Node.js 20+ (with corepack/pnpm)
+- Python 3.13 (optional if using docker)
+
+### Using Docker Compose (recommended)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 1. Clone repository
+git clone https://github.com/sudee404/label-maker.git
+cd label-maker
+
+# 2. Create .env files (examples provided in repo)
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
+# 3. Start everything
+docker compose up --build
+
+# Frontend → http://localhost:3000
+# Backend API → http://localhost:8000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Alternative: Run without Docker
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Backend**
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate    # or .venv\Scripts\activate on Windows
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver
+```
 
-## Learn More
+**Frontend**
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+cd frontend
+corepack enable
+pnpm install
+pnpm dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📂 Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+label-maker/
+├── backend/                    # Django REST API
+│   ├── config/
+│   ├── shipments/
+│   ├── media/
+│   └── requirements.txt
+│
+├── frontend/                   # Next.js application
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   ├── hooks/
+│   └── public/
+│
+├── compose.yml
+└── README.md
+```
 
-## Deploy on Vercel
+## 🎯 Current Status (Jan 2026)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Implemented almost complete **frontend workflow** according to the technical assessment PRD:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- All three main steps + purchase flow
+- Bulk actions & saved presets
+- Data validation & helpful error states
+- Nice UX with shadcn/ui components
+- Export corrected CSV
+
+**Backend currently provides:**
+
+- Basic CRUD endpoints for shipments
+- File upload endpoint (optional – most logic lives in frontend for assessment)
+
+## 🛠️ Deployment (Render)
+
+Project is split into two Render services:
+
+- **Frontend** – Next.js static + server components  
+  https://frontend-8c1r.onrender.com
+
+- **Backend** – Django + Gunicorn + SQLite  
+  https://label-maker-backend.onrender.com
+
+Both are on **free tier** → expect 30–90 second cold start delay
+
+## 🔮 Planned / Nice-to-have (not implemented yet)
+
+- Real carrier API integration (Shippo/EasyPost/Stamps.com)
+- PDF label generation & download
+- User authentication & multi-account support
+- Order history & reprint functionality
+- Advanced validation (address verification, zip code format)
+
+## 📄 License
+
+MIT
+
+---
+
+Made with ❤️ for the technical assessment process  
+January 2026
