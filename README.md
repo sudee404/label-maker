@@ -4,8 +4,8 @@ Modern web application for e-commerce merchants and fulfillment teams to **bulk-
 
 Multi-step wizard that allows uploading order data via CSV, reviewing/editing shipments, selecting shipping services, and generating labels.
 
-https://label-maker-frontend.onrender.com  
-*(Frontend – Next.js 14+ App Router)*  
+https://frontend-8c1r.onrender.com 
+*(Frontend – Next.js 16+ App Router)*  
 Backend API: https://backend-pvym.onrender.com
 
 (Currently using free Render tier – may be slow on first load due to cold starts. Ensure backend loads before frontend for it to work)
@@ -128,7 +128,7 @@ Project is split into two Render services:
   https://frontend-8c1r.onrender.com
 
 - **Backend** – Django + Gunicorn + SQLite  
-  https://label-maker-backend.onrender.com
+    https://frontend-8c1r.onrender.com
 
 Both are on **free tier** → expect 30–90 second cold start delay
 

@@ -169,7 +169,8 @@ export default function Dashboard() {
       )}
       {currentStep === "purchase" && (
         <PurchaseStep
-          records={records}
+          batch={batch}
+          data={shipments}
           labelSize={labelSize}
           onLabelSizeChange={setLabelSize}
           onPurchase={() => handleNavigate("success")}
@@ -178,7 +179,8 @@ export default function Dashboard() {
       )}
       {currentStep === "success" && (
         <SuccessStep
-          records={records}
+          batch={batch as string}
+          data={shipments}
           labelSize={labelSize}
           onReset={handleReset}
         />

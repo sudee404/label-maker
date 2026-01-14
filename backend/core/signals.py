@@ -13,8 +13,6 @@ logger = logging.getLogger(__name__)
 
 @receiver(pre_save, sender=Shipment)
 def validate_and_price_shipment(sender, instance, **kwargs):
-    
-    print('here')
     """
     Signal handler to validate shipment and calculate price before saving.
     
